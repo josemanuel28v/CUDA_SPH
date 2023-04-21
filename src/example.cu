@@ -1,5 +1,6 @@
 #include "example.cuh"
 #include "stdio.h"
+#include "types.h"
 
 __global__ void sumArray(float *a, float* b, float* c, int n)
 {
@@ -70,7 +71,7 @@ void example1()
 
     // Grid
     dim3 blockDim(THREADS_PER_BLOCK);
-    dim3 gridDim(ceil(N / (float) THREADS_PER_BLOCK));
+    dim3 gridDim((uint) ceil(N / (float) THREADS_PER_BLOCK));
 
     // Run kernel
     sumArray<<<gridDim, blockDim>>>(d_a, d_b, d_c, N);
@@ -121,7 +122,7 @@ void example2()
 
     // Grid
     dim3 blockDim(THREADS_PER_BLOCK);
-    dim3 gridDim(ceil(N / (float) THREADS_PER_BLOCK));
+    dim3 gridDim((uint) ceil(N / (float) THREADS_PER_BLOCK));
 
     // Run kernel
     sumReduction<<<gridDim, blockDim>>>(d_a, d_sum, N);

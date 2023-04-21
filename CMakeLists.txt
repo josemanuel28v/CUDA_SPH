@@ -11,12 +11,21 @@ project(SPH)
 
 option(USE_CUDA "Use CUDA" ON)
 
+set(CMAKE_CXX_STANDARD 17)
+
+# Include directories
+include_directories(
+    ${CMAKE_SOURCE_DIR}/extern/glm/inc
+    ${CMAKE_SOURCE_DIR}/extern/glad/include/glad
+    ${CMAKE_SOURCE_DIR}/extern/glfw/inc
+)
+
+# Source files to compile
 file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/*.cpp")
 file(GLOB gpu_source_files "${CMAKE_SOURCE_DIR}/src/*.cu")
 
 if( ("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR ("${CMAKE_VERSION}" VERSION_GREATER 3.8) )
     # Modern CMake
-    message(STATUS "Build with modern CMake")
     if(USE_CUDA)
         enable_language("CUDA")
         add_executable(SPH ${cpu_source_files} ${gpu_source_files})
@@ -25,7 +34,6 @@ if( ("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR ("${CMAKE_VERSION}" VERSION_GREATE
     endif()
 else()
     # Old CMake
-    message(STATUS "Build with old CMake")
     add_executable(SPH ${cpu_source_files})
     if(USE_CUDA)
         find_package(CUDA 8.0)
@@ -43,3 +51,10 @@ message(STATUS "USE_CUDA: ${USE_CUDA}")
 if(USE_CUDA)
     add_definitions(-DUSE_CUDA)
 endif()
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glad)
+#find_package(OpenGL REQUIRED)
+
+target_link_options(SPH PRIVATE "/NODEFAULTLIB:MSVCRT")
+target_link_options(SPH PRIVATE "/NODEFAULTLIB:LIBCMT")
+target_link_libraries(SPH ${SPH_SOURCE_DIR}/extern/glfw/lib/glfw3.lib glad)
