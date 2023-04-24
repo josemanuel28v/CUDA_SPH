@@ -1,4 +1,5 @@
 #pragma once
+#define GLAD_ONLY_HEADERS
 #include "common.h"
 
 class InputManager

@@ -11,13 +11,14 @@ project(SPH)
 
 option(USE_CUDA "Use CUDA" ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/extern/glm/inc
-    ${CMAKE_SOURCE_DIR}/extern/glad/include/glad
-    ${CMAKE_SOURCE_DIR}/extern/glfw/inc
+    #${CMAKE_SOURCE_DIR}/extern/glad/include/glad
+    ${CMAKE_SOURCE_DIR}/extern/glfw/include
+    ${CMAKE_SOURCE_DIR}/extern/glfw/deps
 )
 
 # Source files to compile
@@ -52,9 +53,10 @@ if(USE_CUDA)
     add_definitions(-DUSE_CUDA)
 endif()
 
-add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glad)
+add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glfw)
 #find_package(OpenGL REQUIRED)
 
 target_link_options(SPH PRIVATE "/NODEFAULTLIB:MSVCRT")
 target_link_options(SPH PRIVATE "/NODEFAULTLIB:LIBCMT")
-target_link_libraries(SPH ${SPH_SOURCE_DIR}/extern/glfw/lib/glfw3.lib glad)
+#target_link_libraries(SPH ${SPH_SOURCE_DIR}/extern/glfw/lib/glfw3.lib glad)
+target_link_libraries(SPH glfw)

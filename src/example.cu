@@ -2,6 +2,30 @@
 #include "stdio.h"
 #include "types.h"
 
+__global__ void particles(glm::vec4* positions, int numParticles)
+{
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (idx < numParticles)
+    {
+        printf("sumando a y");
+        positions[idx].y += 0.1f;
+    }
+    else
+    {
+        printf("no sumando a y");
+    }
+}
+
+void moveParticles(glm::vec4* positions, int numParticles)
+{
+    uint threads_per_block = 16;
+    dim3 blockDim(threads_per_block);
+    dim3 gridDim(ceil(numParticles / (float) threads_per_block));
+    particles<<<gridDim, blockDim>>>(positions, numParticles);
+}
+
+
 __global__ void sumArray(float *a, float* b, float* c, int n)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x; // Cuando solo hay una dimension 
