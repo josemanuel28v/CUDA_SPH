@@ -11,7 +11,7 @@ class Render
 public:
     Render(uint width, uint height);
     void init();
-    void setupObject(Object *obj, unsigned numInstances);
+    void setupObject(Object *obj, unsigned numInstances, glm::vec4* positions);
     void removeObject(Object *obj);
     void drawObject(Object *obj, unsigned numInstances, glm::vec4* positions);
     void clearDisplay();

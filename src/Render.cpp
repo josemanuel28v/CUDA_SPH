@@ -1,6 +1,7 @@
 #include "Render.h"
 #include "cuda_gl_interop.h"
 #include <vector>
+#include "example.cuh"
 
 Render::Render(uint width, uint height)
 {
@@ -34,7 +35,7 @@ void Render::init()
     glEnable(GL_BLEND);
 }
 
-void Render::setupObject(Object *obj, unsigned numInstances)
+void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* positions)
 {
     Mesh3D* mesh = obj->getMesh();
 
@@ -74,29 +75,9 @@ void Render::setupObject(Object *obj, unsigned numInstances)
             glVertexAttribPointer(program->vars["vtextcoord"], 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, textCoord));
         }
 
-        // Matrices mvps (instancing)
-        // glBindBuffer(GL_ARRAY_BUFFER, vao.mvp_id);
-        // glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4) * numInstances, nullptr, GL_DYNAMIC_DRAW);
-
-        // glEnableVertexAttribArray(program->vars["vmvp"] + 0);
-        // glVertexAttribPointer(program->vars["vmvp"] + 0, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*)0x00);
-        // glVertexAttribDivisor(program->vars["vmvp"] + 0, 1);
-
-        // glEnableVertexAttribArray(program->vars["vmvp"] + 1);
-        // glVertexAttribPointer(program->vars["vmvp"] + 1, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*)(1 * sizeof(float) * 4));
-        // glVertexAttribDivisor(program->vars["vmvp"] + 1, 1);
-
-        // glEnableVertexAttribArray(program->vars["vmvp"] + 2);
-        // glVertexAttribPointer(program->vars["vmvp"] + 2, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*)(2 * sizeof(float) * 4));
-        // glVertexAttribDivisor(program->vars["vmvp"] + 2, 1);
-
-        // glEnableVertexAttribArray(program->vars["vmvp"] + 3);
-        // glVertexAttribPointer(program->vars["vmvp"] + 3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (GLvoid*)(3 * sizeof(float) * 4));
-        // glVertexAttribDivisor(program->vars["vmvp"] + 3, 1);
-
         // Positions instead of mvps
         glBindBuffer(GL_ARRAY_BUFFER, vao.mvp_id);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, nullptr, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW); // modificar el gldynamicdraw ya que se esta modificando directamente el buffer en gpu y no se envian datos desde cpu
 
         glEnableVertexAttribArray(program->vars["ppos"] + 0);
         glVertexAttribPointer(program->vars["ppos"], 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (GLvoid*)0x00);
@@ -104,11 +85,10 @@ void Render::setupObject(Object *obj, unsigned numInstances)
 
         glBindVertexArray(0);
 
-        bufferObjects[mesh->getId()] = vao;
-
         // CUDA register (mapear posiciones en GPU OpenGL <-> CUDA)
-        // cudaGLSetGLDevice(0); ?? no se si es necesario
-        cudaGraphicsGLRegisterBuffer(&vao.cuda_id, vao.mvp_id, cudaGraphicsMapFlagsWriteDiscard);
+        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_id, vao.mvp_id, cudaGraphicsMapFlagsNone));
+
+        bufferObjects[mesh->getId()] = vao;
     }
 }
 
@@ -129,7 +109,6 @@ void Render::removeObject(Object *obj)
     }
 }
 
-#include <glm/gtx/string_cast.hpp>
 void Render::drawObject(Object *obj, unsigned numInstances, glm::vec4* positions)
 {
     Mesh3D* mesh = obj->getMesh();
@@ -143,8 +122,8 @@ void Render::drawObject(Object *obj, unsigned numInstances, glm::vec4* positions
 
     // Dibujado
     glBindVertexArray(buffer.id);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer.mvp_id);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW);
+    //glBindBuffer(GL_ARRAY_BUFFER, buffer.mvp_id);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW);
     //glBindBuffer(GL_ARRAY_BUFFER, buffer.color_id);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &colors[0], GL_DYNAMIC_DRAW);
     glDrawElementsInstanced(GL_TRIANGLES, mesh->getIndices()->size(), GL_UNSIGNED_INT, nullptr, numInstances); 

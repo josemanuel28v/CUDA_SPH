@@ -8,12 +8,7 @@ __global__ void particles(glm::vec4* positions, int numParticles)
 
     if (idx < numParticles)
     {
-        printf("sumando a y");
-        positions[idx].y += 0.1f;
-    }
-    else
-    {
-        printf("no sumando a y");
+        positions[idx].y += 0.01f;
     }
 }
 

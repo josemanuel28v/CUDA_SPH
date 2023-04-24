@@ -1,9 +1,5 @@
 #pragma once
 #include "ParticleSystem.h"
-#include "types.h"
-#include "VAO_t.h"
-#include "example.cuh"
-#include "System.h"
 
 class SPHSystem : public ParticleSystem
 {

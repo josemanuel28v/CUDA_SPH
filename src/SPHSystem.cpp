@@ -1,4 +1,8 @@
 #include "SPHSystem.h"
+#include "types.h"
+#include "VAO_t.h"
+#include "System.h"
+#include "example.cuh"
 
 SPHSystem::SPHSystem(glm::vec3 min, glm::vec3 max, Particle* prototype)
 {
@@ -39,13 +43,16 @@ void SPHSystem::step(double deltaTime)
 {
     uint mid = prototype->getMesh()->getId();
     VAO_t vao = System::getRender()->getBufferObject(mid);
-
-    cudaGraphicsMapResources(1, &vao.cuda_id, 0);
     size_t bytes;
     glm::vec4* positions;
-    cudaGraphicsResourceGetMappedPointer((void**)&positions, &bytes, vao.cuda_id);
+    
+    gpuErrchk(cudaGraphicsMapResources(1, &vao.cuda_id, 0)); // Map resources
+    gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&positions, &bytes, vao.cuda_id)); // Get pointer of mapped data
 
-    moveParticles(positions, size);
+    moveParticles(positions, size); // Run wrapped CUDA kernel
+    gpuErrchk(cudaGetLastError()); // Check kernel errors
 
-    //cudaGraphicsUnmapResources(1, &vao.cuda_id, 0); //release memory
+    gpuErrchk(cudaDeviceSynchronize()); // Wait to complete kernel execution
+
+    gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_id, 0)); // Unmap resources
 }

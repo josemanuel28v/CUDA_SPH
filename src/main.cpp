@@ -1,4 +1,3 @@
-#include "example.cuh"
 #include "common.h"
 #include "System.h"
 #include "SPHSystem.h"
@@ -7,9 +6,7 @@
 #include <iostream>
 
 int main()
-{
-    //example2();
-    
+{    
     System::init(640, 480);
 
     glm::vec3 position(0.0f, 0.0f, 2.0f);

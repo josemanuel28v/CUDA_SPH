@@ -23,7 +23,7 @@ void System::mainLoop()
     }
 
     if (psystem)
-        render->setupObject(psystem->getPrototype(), psystem->getSize());
+        render->setupObject(psystem->getPrototype(), psystem->getSize(), psystem->getPositions());
 
     while (!exit)
     {
