@@ -8,6 +8,7 @@ public:
     Particle(float radius) { this->radius = radius; }
     void setRadius(float radius) { this->radius = radius; }
     float getRadius() { return radius; }
+    float* getRadiusAddress() { return &radius; }
 
 private:
 

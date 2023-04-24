@@ -54,9 +54,6 @@ if(USE_CUDA)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/extern/glfw)
-#find_package(OpenGL REQUIRED)
 
-target_link_options(SPH PRIVATE "/NODEFAULTLIB:MSVCRT")
-target_link_options(SPH PRIVATE "/NODEFAULTLIB:LIBCMT")
-#target_link_libraries(SPH ${SPH_SOURCE_DIR}/extern/glfw/lib/glfw3.lib glad)
+target_link_options(SPH PRIVATE "/NODEFAULTLIB:LIBCMT") # Por warnings de linkado
 target_link_libraries(SPH glfw)

@@ -1,7 +1,7 @@
 #include "Render.h"
-#include "cuda_gl_interop.h"
 #include <vector>
-#include "example.cuh"
+#include "SPH.cuh"
+#include "cuda_gl_interop.h"
 
 Render::Render(uint width, uint height)
 {
@@ -43,7 +43,6 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
 
     if (bufferObjects.find(mesh->getId()) == bufferObjects.end())
     {
-        std::cout << "Setting up particle " << std::endl;
         VAO_t vao;
 
         std::vector<vertex_t>* vertices = mesh->getVertices();

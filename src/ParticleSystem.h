@@ -21,7 +21,6 @@ public:
     virtual uint getSize() { return size; }
 
     virtual void setPrototype(Particle* prototype) { this->prototype = prototype; }
-
     glm::vec4* getPositions() { return positions.data(); }
 
 protected:
@@ -30,5 +29,4 @@ protected:
 
     std::vector<glm::vec4> positions;
     uint size;
-    // arrays of pos, vel, dens, forces ...
 };
