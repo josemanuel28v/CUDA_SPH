@@ -84,7 +84,7 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
 
         glBindVertexArray(0);
 
-        // CUDA register (mapear posiciones en GPU OpenGL <-> CUDA)
+        // CUDA register (registrar el buffer de opengl en CUDA para posteriormente mapear posiciones en GPU OpenGL <-> CUDA)
         gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_id, vao.mvp_id, cudaGraphicsMapFlagsNone));
 
         bufferObjects[mesh->getId()] = vao;
@@ -114,13 +114,13 @@ void Render::drawObject(Object *obj, unsigned numInstances, glm::vec4* positions
     Material* mat = mesh->getMaterial();
 
     // Activar buffers antes de usar el programa
-    VAO_t buffer = bufferObjects[mesh->getId()];
+    VAO_t vao = bufferObjects[mesh->getId()];
 
     // Attributes
     mat->prepare();
 
     // Dibujado
-    glBindVertexArray(buffer.id);
+    glBindVertexArray(vao.id);
     //glBindBuffer(GL_ARRAY_BUFFER, buffer.mvp_id);
     //glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW);
     //glBindBuffer(GL_ARRAY_BUFFER, buffer.color_id);

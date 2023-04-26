@@ -20,7 +20,7 @@ void Material::prepare()
 	program->setInt("texturing", (int)texturing);
 	program->setMatrix("view", System::getCamera()->getView());
 	program->setMatrix("proj", System::getCamera()->getProjection());
-	program->setFloat("radius", 0.05f);
+	program->setFloat("radius", System::getParticleSystem()->getPrototype()->getRadius());
 
 	// Depth test
 	//depthWrite ? glDepthMask(GL_TRUE) : glDepthMask(GL_FALSE);

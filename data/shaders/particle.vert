@@ -18,10 +18,10 @@ void main()
     ftextcoord = vtextcoord;
     
     mat4 scale = mat4(0.0f);
-    float rad = radius * (2.0 + 0.1);
-    scale[0][0] = rad;
-    scale[1][1] = rad;
-    scale[2][2] = rad;
+    float diam = radius * 2.1; // para ocultar los bordes de la textura se añade 0.1 al factor 2
+    scale[0][0] = diam;
+    scale[1][1] = diam;
+    scale[2][2] = diam;
     scale[3][3] = 1.0f;
 
     mat4 model = view;

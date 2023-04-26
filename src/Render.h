@@ -3,7 +3,6 @@
 #include "common.h"
 #include "Object.h"
 #include "types.h"
-#include "cuda_gl_interop.h"
 #include "VAO_t.h"
 
 class Render
@@ -11,9 +10,9 @@ class Render
 public:
     Render(uint width, uint height);
     void init();
-    void setupObject(Object *obj, unsigned numInstances, glm::vec4* positions);
-    void removeObject(Object *obj);
-    void drawObject(Object *obj, unsigned numInstances, glm::vec4* positions);
+    void setupObject(Object* obj, unsigned numInstances, glm::vec4* positions);
+    void removeObject(Object* obj);
+    void drawObject(Object* obj, unsigned numInstances, glm::vec4* positions);
     void clearDisplay();
     void swapBuffers();
     bool isClosed();
@@ -26,5 +25,4 @@ private:
     std::unordered_map<uint, VAO_t> bufferObjects;
     GLFWwindow* window;
     uint width, height;
-
 };

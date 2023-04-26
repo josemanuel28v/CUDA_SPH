@@ -46,9 +46,11 @@ public:
     static glm::mat4 getModelMat() { return model; }
 	static InputManager* getInputManager() { return inputManager; }
 	static Render* getRender() { return render; }
+	static ParticleSystem* getParticleSystem() { return psystem; }
 
 protected:
     inline static bool exit;
+	inline static bool pause;
 
     inline static glm::mat4 model;
     inline static Camera* camera;
