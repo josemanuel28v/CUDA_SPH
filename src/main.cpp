@@ -16,7 +16,7 @@ int main()
     Camera* camera = new CameraKeyboard(Camera::PERSPECTIVE, position, up, lookAt);
 
     // SPHSystem setup
-    float prad = 0.043f;
+    float prad = 0.036f;
     CustomParticle* p = new CustomParticle(prad);
     glm::vec3 min(-1.0f, -1.0f, -1.0f);
     glm::vec3 max(1.0f, 1.0f, 1.0f);
@@ -28,7 +28,7 @@ int main()
     sphSystem->setDomain(minDomain, maxDomain);
     sphSystem->setStiffness(100.0f);
     sphSystem->setViscosity(0.1f);
-    sphSystem->setTimeStep(0.01f);
+    sphSystem->setTimeStep(0.008f);
     sphSystem->setReferenceDensity(1000.0f);
 
     // System setup
