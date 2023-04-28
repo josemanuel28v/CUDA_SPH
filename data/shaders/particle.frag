@@ -9,6 +9,7 @@ in vec2 ftextcoord;
 flat in vec4 center; 
 flat in mat4 fmvp;
 in vec4 fpos;
+in vec4 fcolor;
 
 out vec4 fragColor;
 
@@ -52,10 +53,10 @@ void main()
     //vec3 cameraPos, normal;
     //makeSphere(cameraPos, normal);
 
-    fragColor = vec4(1.0f);
+    fragColor = fcolor;
 
     if (texturing == 1)
     {
-        fragColor = texture2D(colorText, ftextcoord);
+        fragColor = texture2D(colorText, ftextcoord) * fragColor;
     }
 }        

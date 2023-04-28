@@ -31,8 +31,8 @@ endif()
 
 target_compile_options(SPH
     # -O3 -march=native -ffast-math en gcc y clang
-    PRIVATE $<$<COMPILE_LANGUAGE:CXX>: /O2 /arch:AVX2 /fp:fast>
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -O3 --use_fast_math># --gpu-architecture=sm_75>
+    PRIVATE $<$<COMPILE_LANGUAGE:CXX>:># /O2 /arch:AVX2 /fp:fast>
+    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda -O3 --use_fast_math># --gpu-architecture=sm_75>
 )
 
 message(STATUS "USE_CUDA: ${USE_CUDA}")

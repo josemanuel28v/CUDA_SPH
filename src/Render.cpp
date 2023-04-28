@@ -55,7 +55,7 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
 
         glGenBuffers(1, &vao.v_id);
         glGenBuffers(1, &vao.i_id);
-        glGenBuffers(1, &vao.mvp_id);
+        glGenBuffers(1, &vao.p_id);
 
         // Vertices
         glBindBuffer(GL_ARRAY_BUFFER, vao.v_id);
@@ -74,18 +74,27 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
             glVertexAttribPointer(program->vars["vtextcoord"], 2, GL_FLOAT, GL_FALSE, sizeof(vertex_t), (void*)offsetof(vertex_t, textCoord));
         }
 
-        // Positions instead of mvps
-        glBindBuffer(GL_ARRAY_BUFFER, vao.mvp_id);
+        // Positions (Instancing)
+        glBindBuffer(GL_ARRAY_BUFFER, vao.p_id);
         glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW); // modificar el gldynamicdraw ya que se esta modificando directamente el buffer en gpu y no se envian datos desde cpu
 
-        glEnableVertexAttribArray(program->vars["ppos"] + 0);
+        glEnableVertexAttribArray(program->vars["ppos"]);
         glVertexAttribPointer(program->vars["ppos"], 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (GLvoid*)0x00);
         glVertexAttribDivisor(program->vars["ppos"], 1);
+
+        // Color (instancing)
+        glBindBuffer(GL_ARRAY_BUFFER, vao.c_id);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW); // modificar el gldynamicdraw ya que se esta modificando directamente el buffer en gpu y no se envian datos desde cpu
+
+        glEnableVertexAttribArray(program->vars["pcolor"]);
+        glVertexAttribPointer(program->vars["pcolor"], 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (GLvoid*)0x00);
+        glVertexAttribDivisor(program->vars["pcolor"], 1);
 
         glBindVertexArray(0);
 
         // CUDA register (registrar el buffer de opengl en CUDA para posteriormente mapear posiciones en GPU OpenGL <-> CUDA)
-        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_id, vao.mvp_id, cudaGraphicsMapFlagsNone));
+        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_p_id, vao.p_id, cudaGraphicsMapFlagsNone));
+        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_c_id, vao.c_id, cudaGraphicsMapFlagsNone));
 
         bufferObjects[mesh->getId()] = vao;
     }

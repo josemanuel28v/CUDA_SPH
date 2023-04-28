@@ -7,28 +7,36 @@
 
 int main()
 {    
+    glm::vec3 offset = glm::vec3(0.0f);
+
     System::init(640, 480);
 
     // Camera setup
     glm::vec3 position(0.0f, 0.0f, 4.0f);
     glm::vec3 up(0.0f, 1.0f, 0.0f);
     glm::vec3 lookAt(0.0f, 0.0f, 0.0f);
+    position += offset;
+    lookAt += offset;
     Camera* camera = new CameraKeyboard(Camera::PERSPECTIVE, position, up, lookAt);
 
     // SPHSystem setup
-    float prad = 0.036f;
+    float prad = 0.023f;
     CustomParticle* p = new CustomParticle(prad);
     glm::vec3 min(-1.0f, -1.0f, -1.0f);
     glm::vec3 max(1.0f, 1.0f, 1.0f);
     glm::vec3 minDomain(-1.5f, -1.0f + 2 * prad, -1.5f);
     glm::vec3 maxDomain(1.5f, 2.0f, 1.5f);
+    min += offset;
+    max += offset;
+    minDomain += offset;
+    maxDomain += offset;
 
     SPHSystem* sphSystem = new SPHSystem(p);
     sphSystem->setFluid(min, max);
     sphSystem->setDomain(minDomain, maxDomain);
     sphSystem->setStiffness(100.0f);
     sphSystem->setViscosity(0.1f);
-    sphSystem->setTimeStep(0.008f);
+    sphSystem->setTimeStep(0.005f);
     sphSystem->setReferenceDensity(1000.0f);
 
     // System setup
@@ -37,3 +45,6 @@ int main()
     System::mainLoop();
     System::releaseMemory();
 }
+
+
+

@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <glm/glm.hpp>
 #include <vector>
+#include "VAO_t.h"
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
@@ -40,7 +41,7 @@ public:
    // SPH computation
    void checkValues();
    void reset(cudaGraphicsResource* positionBufferObject, glm::vec4* h_positions);
-   void step(cudaGraphicsResource* positionBufferObject);
+   void step(VAO_t positionBufferObject);
 
 private:
 
@@ -79,6 +80,17 @@ private:
    glm::vec3* d_velocities;
    glm::vec3* d_minDomain;
    glm::vec3* d_maxDomain;
+
+   // Grid stuff
+   uint32_t* cellIndexBuffer;
+   uint32_t* particleIndexBuffer;
+   uint32_t* cellOffsetBuffer;
+
+   uint32_t* d_cellIndexBuffer;
+   uint32_t* d_particleIndexBuffer;
+   uint32_t* d_cellOffsetBuffer;
 };
+
+
 
 

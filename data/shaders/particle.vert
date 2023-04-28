@@ -5,6 +5,7 @@ uniform mat4 proj;
 uniform float radius;
 
 in vec4 ppos;
+in vec4 pcolor;
 in vec4 vpos;
 in vec2 vtextcoord;
 
@@ -12,6 +13,7 @@ out vec2 ftextcoord;
 flat out vec4 center; 
 flat out mat4 fmvp;
 out vec4 fpos;
+out vec4 fcolor;
 
 void main()
 {
@@ -34,6 +36,7 @@ void main()
 	model = transpose(model);
 
     center = ppos;
+    fcolor = pcolor;
     fpos = model * vpos;
     fmvp = proj * view * model;
     gl_Position = fmvp * vpos;

@@ -51,7 +51,7 @@ void SPHSystem::reset()
     VAO_t vao = System::getRender()->getBufferObject(mid);
 
     createFluid(minFluid, maxFluid);
-    solver->reset(vao.cuda_id, &positions[0]);
+    solver->reset(vao.cuda_p_id, &positions[0]);
 }
 
 uint SPHSystem::createFluid(glm::vec3 min, glm::vec3 max)
@@ -94,7 +94,7 @@ void SPHSystem::step(double deltaTime)
     uint mid = prototype->getMesh()->getId();
     VAO_t vao = System::getRender()->getBufferObject(mid);
 
-    solver->step(vao.cuda_id);
+    solver->step(vao);
 }
 
 void SPHSystem::release()
