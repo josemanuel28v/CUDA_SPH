@@ -1,6 +1,6 @@
 ## Overview
 
-Implementación de una simulación de fluidos SPH mediante el uso de C++ y CUDA. La visualización de los resultados se lleva a cabo a través de OpenGL, utilizando la interoperabilidad CUDA/OpenGL.
+Implementación del método SPH para simulación de fluidos mediante el uso de C++ y CUDA. La visualización de la simulación se lleva a cabo a través de OpenGL, utilizando la interoperabilidad CUDA/OpenGL.
 
 ## Build
 
