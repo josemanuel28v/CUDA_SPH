@@ -14,6 +14,10 @@ public:
         prototype = nullptr;
         this->size = size;
     }
+    ~ParticleSystem()
+    {
+        if (prototype) delete prototype;
+    }
 
     virtual void init() = 0;
     virtual void release() = 0;

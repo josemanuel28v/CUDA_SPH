@@ -75,3 +75,9 @@ void Material::loadPrograms(std::vector<std::string> fileNames)
 
 	this->program->linkPrograms();
 }
+
+Material::~Material()
+{
+	if (texture) delete texture;
+	if (program) delete program;
+}

@@ -12,7 +12,7 @@ public:
     void init();
     void setupObject(Object* obj, unsigned numInstances, glm::vec4* positions);
     void removeObject(Object* obj);
-    void drawObject(Object* obj, unsigned numInstances, glm::vec4* positions);
+    void drawObject(Object* obj, unsigned numInstances);
     void clearDisplay();
     void swapBuffers();
     bool isClosed();

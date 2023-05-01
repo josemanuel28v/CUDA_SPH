@@ -6,13 +6,13 @@
 SPHSystem::SPHSystem(Particle* prototype)
 {
     this->prototype = prototype;
-    this->solver = new SPH();
+    this->solver = new SPHSolver();
 }
 
 void SPHSystem::init()
 {
     h = 4.0f * prototype->getRadius();
-    mass = density0 * pow(2.0f * prototype->getRadius(), 3.0); // m = d * v
+    mass = density0 * pow(2.0f * prototype->getRadius(), 3.0f); // m = d * v
 
     // Set host and devices pointers 
     solver->setSmoothingLength(&h);
@@ -50,16 +50,21 @@ void SPHSystem::reset()
     uint mid = prototype->getMesh()->getId();
     VAO_t vao = System::getRender()->getBufferObject(mid);
 
-    createFluid(minFluid, maxFluid);
+    createFluid(fluid);
     solver->reset(vao.cuda_p_id, &positions[0]);
 }
 
-uint SPHSystem::createFluid(glm::vec3 min, glm::vec3 max)
+uint SPHSystem::createFluid(const std::vector<Fluid>& fluid)
 {
     float dist = 2.0f * prototype->getRadius();
+    std::vector<glm::ivec3> ppedge(fluid.size());
 
-    glm::ivec3 ppedge = floor((max - min) / dist);// + 1e-5f);
-    uint numParticles = ppedge.x * ppedge.y * ppedge.z;
+    uint numParticles = 0;
+    for (uint fid = 0; fid < fluid.size(); ++fid)
+    {
+        ppedge[fid] = floor((fluid[fid].max - fluid[fid].min) / dist);
+        numParticles += ppedge[fid].x * ppedge[fid].y * ppedge[fid].z;
+    }
     
     positions.resize(numParticles);
     velocities.resize(numParticles);
@@ -68,25 +73,29 @@ uint SPHSystem::createFluid(glm::vec3 min, glm::vec3 max)
     densities.resize(numParticles);
 
     uint id = 0;
-    for (int i = 0; i < ppedge.x; ++i)
-    {
-        for (int j = 0; j < ppedge.y; ++j)
-        {
-            for (int k = 0; k < ppedge.z; ++k)
-            {
-                glm::vec3 pos(i, j, k);
-                pos *= dist;
-                pos += min + prototype->getRadius();
 
-                positions[id] = glm::vec4(pos, 1.0f);
-                velocities[id] = glm::vec3(0.0f);
-                forces[id] = glm::vec3(0.0f);
-                ++id;
+    for (uint fid = 0; fid < fluid.size(); ++fid)
+    {
+        for (int i = 0; i < ppedge[fid].x; ++i)
+        {
+            for (int j = 0; j < ppedge[fid].y; ++j)
+            {
+                for (int k = 0; k < ppedge[fid].z; ++k)
+                {
+                    glm::vec3 pos(i, j, k);
+                    pos *= dist;
+                    pos += fluid[fid].min + prototype->getRadius();
+
+                    positions[id] = glm::vec4(pos, 1.0f);
+                    velocities[id] = glm::vec3(0.0f);
+                    forces[id] = glm::vec3(0.0f);
+                    ++id;
+                }
             }
         }
     }
 
-    return ppedge.x * ppedge.y * ppedge.z;
+    return numParticles;
 }
 
 void SPHSystem::step(double deltaTime)  
@@ -99,5 +108,5 @@ void SPHSystem::step(double deltaTime)
 
 void SPHSystem::release()
 {
-    solver->freeCudaMemory(); 
+    solver->release(); 
 }

@@ -70,6 +70,7 @@ void RenderProgram::setupShaderVarList() {
 	int length = 0;
 
 	glGetProgramiv(pid, GL_ACTIVE_ATTRIBUTES, &count);
+	//std::cout << "Attributes: " << count << std::endl;
 	for (int i = 0; i < count; i++)
 	{
 		glGetActiveAttrib(pid, (GLuint)i, bufSize, &length, &size, &type,name);
@@ -78,12 +79,12 @@ void RenderProgram::setupShaderVarList() {
 	}
 
 	glGetProgramiv(pid, GL_ACTIVE_UNIFORMS, &count);
-	std::cout << "Uniforms: " << count << std::endl;
+	//std::cout << "Uniforms: " << count << std::endl;
 	for (int i = 0; i < count; i++)
 	{
 		glGetActiveUniform(pid, (GLuint)i, bufSize, &length, &size,&type, name);
 		vars[std::string(name)] = glGetUniformLocation(pid,name);
-		std::cout << "Uniform: " << std::string(name) << std::endl;
+		//std::cout << "Uniform: " << std::string(name) << std::endl;
 	}
 	std::cout << std::endl;
 

@@ -8,3 +8,10 @@ Mesh3D::Mesh3D()
 	indices = new std::vector<glm::uint32>();
     material = nullptr;
 }
+
+Mesh3D::~Mesh3D()
+{
+    if (vertices) delete vertices;
+    if (indices) delete indices;
+    if (material) delete material;
+}

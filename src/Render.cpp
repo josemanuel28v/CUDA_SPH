@@ -1,6 +1,6 @@
 #include "Render.h"
 #include <vector>
-#include "SPH.cuh"
+#include "SPHSolver.cuh"
 #include "cuda_gl_interop.h"
 
 Render::Render(uint width, uint height)
@@ -117,7 +117,7 @@ void Render::removeObject(Object *obj)
     }
 }
 
-void Render::drawObject(Object *obj, unsigned numInstances, glm::vec4* positions)
+void Render::drawObject(Object *obj, unsigned numInstances)
 {
     Mesh3D* mesh = obj->getMesh();
     Material* mat = mesh->getMaterial();
@@ -130,11 +130,7 @@ void Render::drawObject(Object *obj, unsigned numInstances, glm::vec4* positions
 
     // Dibujado
     glBindVertexArray(vao.id);
-    //glBindBuffer(GL_ARRAY_BUFFER, buffer.mvp_id);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &positions[0], GL_DYNAMIC_DRAW);
-    //glBindBuffer(GL_ARRAY_BUFFER, buffer.color_id);
-    //glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * numInstances, &colors[0], GL_DYNAMIC_DRAW);
-    glDrawElementsInstanced(GL_TRIANGLES, mesh->getIndices()->size(), GL_UNSIGNED_INT, nullptr, numInstances); 
+    glDrawElementsInstanced(GL_TRIANGLES, (GLsizei) mesh->getIndices()->size(), GL_UNSIGNED_INT, nullptr, numInstances); 
     glBindVertexArray(0);
 }
 

@@ -13,11 +13,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-class SPH
+class SPHSolver
 {
 public:
 
-   // CPU pointers
+   // Initialize and set CPU pointers
    void init();
    void setSmoothingLength(float* h) { this->h = h; }
    void setParticleRadius(float* radius) { this->radius = radius; }
@@ -35,60 +35,61 @@ public:
    void setTimeStep(float* timeStep) { this->timeStep = timeStep; }
 
    // GPU Pointers
-   void allocateCudaMemory(); // Reservará memoria en la GPU para los datos que no hayan sido ya instanciados por OpenGL (de momento OpenGL solo crea buffers para el array de posiciones)
+   void allocateCudaMemory(); 
    void freeCudaMemory();
 
    // SPH computation
-   void checkValues();
    void reset(cudaGraphicsResource* positionBufferObject, glm::vec4* h_positions);
    void step(VAO_t positionBufferObject);
+   void release();
 
 private:
 
    // Host pointers
-   int* size;
-   float* timeStep;
-   float* h; 
-   float* mass;
-   float* density0;
-   float* stiffness;
-   float* viscosity;
-   float* spikyConst;
-   float* cubicConstK;
-   float* radius;
-   float* densities;
-   float* pressures;
-   glm::vec3* forces;
-   glm::vec3* velocities;
-   glm::vec3* minDomain;
-   glm::vec3* maxDomain;
+   int* size = nullptr;
+   float* timeStep = nullptr;
+   float* h = nullptr; 
+   float* mass = nullptr;
+   float* density0 = nullptr;
+   float* stiffness = nullptr;
+   float* viscosity = nullptr;
+   float* spikyConst = nullptr;
+   float* cubicConstK = nullptr;
+   float* radius = nullptr;
+   float* densities = nullptr;
+   float* pressures = nullptr;
+   glm::vec3* forces = nullptr;
+   glm::vec3* velocities = nullptr;
+   glm::vec3* minDomain = nullptr;
+   glm::vec3* maxDomain = nullptr;
+
+   // Grid
+   uint32_t* cellIndexBuffer = nullptr;
+   uint32_t* particleIndexBuffer = nullptr;
+   uint32_t* cellOffsetBuffer = nullptr;
 
    // Device pointers
-   int* d_size;
-   float* d_timeStep;
-   float* d_h;
-   float* d_mass;
-   float* d_density0;
-   float* d_stiffness;
-   float* d_viscosity;
-   float* d_spikyConst;
-   float* d_cubicConstK;
-   float* d_radius;
-   float* d_densities;
-   float* d_pressures;
-   glm::vec3* d_forces;
-   glm::vec3* d_velocities;
-   glm::vec3* d_minDomain;
-   glm::vec3* d_maxDomain;
+   int* d_size = nullptr;
+   float* d_timeStep = nullptr;
+   float* d_h = nullptr;
+   float* d_mass = nullptr;
+   float* d_density0 = nullptr;
+   float* d_stiffness = nullptr;
+   float* d_viscosity = nullptr;
+   float* d_spikyConst = nullptr;
+   float* d_cubicConstK = nullptr;
+   float* d_radius = nullptr;
+   float* d_densities = nullptr;
+   float* d_pressures = nullptr;
+   glm::vec3* d_forces = nullptr;
+   glm::vec3* d_velocities = nullptr;
+   glm::vec3* d_minDomain = nullptr;
+   glm::vec3* d_maxDomain = nullptr;
 
-   // Grid stuff
-   uint32_t* cellIndexBuffer;
-   uint32_t* particleIndexBuffer;
-   uint32_t* cellOffsetBuffer;
-
-   uint32_t* d_cellIndexBuffer;
-   uint32_t* d_particleIndexBuffer;
-   uint32_t* d_cellOffsetBuffer;
+   // Grid
+   uint32_t* d_cellIndexBuffer = nullptr;
+   uint32_t* d_particleIndexBuffer = nullptr;
+   uint32_t* d_cellOffsetBuffer = nullptr;
 };
 
 

@@ -7,6 +7,7 @@ class Material
 public:
 
     Material();
+    ~Material();
     void setTexture(Texture* texture) { this->texture = texture; }
     void setTexturing(bool texturing) { this->texturing = texturing; }
     void setProgram(RenderProgram* program) { this->program = program; }
@@ -19,8 +20,7 @@ public:
     void loadPrograms(std::vector<std::string> fileNames);
 
 private:
-    RenderProgram* program;
-    Texture* texture;
-
+    RenderProgram* program = nullptr;
+    Texture* texture = nullptr;
     bool texturing;
 };

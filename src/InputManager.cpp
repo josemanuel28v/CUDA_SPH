@@ -12,11 +12,25 @@ void InputManager::init()
 
     glfwSetKeyCallback(window, keyManager);
     glfwSetCursorPosCallback(window, mouseManager);
+    glfwSetMouseButtonCallback(window, mouseButtonManager);
     glfwSetFramebufferSizeCallback(window, resizeManager);
-    
-    // Ocultar cursor y fijarlo en el centro de la pantalla
+    //glfwSetScrollCallback(window, mouseScrollManager);
+}
+
+void InputManager::reset()
+{
+    scrollOffset = 0.0;
+}
+
+void InputManager::disableCursor()
+{
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSetCursorPos(window, 0.0, 0.0);
+    //glfwSetCursorPos(window, 0.0, 0.0);
+}
+
+void InputManager::enableCursor()
+{
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 }
 
 bool InputManager::isPressed(int key)
@@ -36,7 +50,7 @@ glm::ivec2 InputManager::getOldMousePosition()
 
 void InputManager::keyManager(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    // Todas las keys que recoge son el may�scula
+    // Todas las keys que recoge son el mayuscula
     switch (action)
     {
     case GLFW_PRESS:
@@ -57,9 +71,31 @@ void InputManager::mouseManager(GLFWwindow* window, double xpos, double ypos)
     InputManager::ypos = (int)ypos;
 }
 
+void InputManager::mouseButtonManager(GLFWwindow* window, int button, int action, int mods)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    {
+        switch (action)
+        {
+            case GLFW_PRESS:
+                rightButtonState = 1;
+                break;
+
+            case GLFW_RELEASE:
+                rightButtonState = 0;
+                break;
+        } 
+    }
+}
+
 void InputManager::resizeManager(GLFWwindow* window, int width, int height)
 {
     InputManager::width = width;
     InputManager::height = height;
     resized = true;
+}
+
+void InputManager::mouseScrollManager(GLFWwindow* window, double xoffset, double yoffset)
+{
+    scrollOffset = yoffset;
 }
