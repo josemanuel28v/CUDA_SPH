@@ -32,7 +32,7 @@ void System::mainLoop()
     {
         tm.update();
 
-        //std::cout << "\r" << round(1.0f / tm.getMeanDeltaTime()) << " FPS          " ;
+        inputManager->setWindowTitle(std::to_string(int(round(1.0f / tm.getMeanDeltaTime()))));
 
         render->clearDisplay();
 

@@ -13,6 +13,7 @@ public:
 	glm::ivec2 getOldMousePosition();
 
 	glm::ivec2 getWindowSize() { return glm::ivec2(width, height); }
+	void setWindowTitle(const std::string& title) { glfwSetWindowTitle(window, title.c_str()); }
 	bool isWindowResized() { return resized; }
 	void setWindowResized() { resized = false; }
     void setWindow(GLFWwindow* window) { this->window = window; }

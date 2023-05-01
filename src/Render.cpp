@@ -19,7 +19,7 @@ void Render::init()
     }
 
     // Crear la ventana
-    window = glfwCreateWindow(this->width, this->height, "OpenGL 4.0", nullptr, nullptr);
+    window = glfwCreateWindow(this->width, this->height, "CUDA SPH", nullptr, nullptr);
 
     if (!window)
     {
@@ -56,6 +56,7 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
         glGenBuffers(1, &vao.v_id);
         glGenBuffers(1, &vao.i_id);
         glGenBuffers(1, &vao.p_id);
+        glGenBuffers(1, &vao.c_id);
 
         // Vertices
         glBindBuffer(GL_ARRAY_BUFFER, vao.v_id);
@@ -90,11 +91,11 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
         glVertexAttribPointer(program->vars["pcolor"], 4, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (GLvoid*)0x00);
         glVertexAttribDivisor(program->vars["pcolor"], 1);
 
-        glBindVertexArray(0);
-
         // CUDA register (registrar el buffer de opengl en CUDA para posteriormente mapear posiciones en GPU OpenGL <-> CUDA)
         gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_p_id, vao.p_id, cudaGraphicsMapFlagsNone));
         gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_c_id, vao.c_id, cudaGraphicsMapFlagsNone));
+
+        glBindVertexArray(0);
 
         bufferObjects[mesh->getId()] = vao;
     }

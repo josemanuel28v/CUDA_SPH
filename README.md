@@ -8,5 +8,7 @@ El proyecto se basa en CMake, una herramienta de software libre que facilita el 
 
 El código ha sido probado en dos configuraciones de sistema operativo diferentes:
 
- - Windows 10 de 64 bits, CMake 3.26.2 y MSVC 19.35.32217.1
- - Ubuntu 22.04 de 64 bits, CMake 0.0.0 y GCC 000 
+ - Windows 10 de 64 bits, CMake 3.26.2 y MSVC 19.35.32217.1.
+ - Ubuntu 22.04 de 64 bits, CMake 0.0.0 y GCC 11.3.0.
+
+En ambos casos se ha testeado con CUDA 12.1.

@@ -1,6 +1,7 @@
 #pragma once
 #include "RenderProgram.h"
 #include "Texture.h"
+#include <vector>
 
 class Material
 {

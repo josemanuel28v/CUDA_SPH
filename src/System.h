@@ -31,6 +31,7 @@ public:
 		if (index < NUM_SAMPLES)
 		{
 			samples[index] = deltaTime;
+			meanDeltaTime = deltaTime;
 			index++;
 		}
 		else
