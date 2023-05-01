@@ -19,8 +19,8 @@ int main()
     Camera* camera = new CameraKeyboard(Camera::PERSPECTIVE, position, up, lookAt);
 
     // SPHSystem setup
-    SPHSystem* sphSystem = simpleDamBreak();
-    //SPHSystem* sphSystem = doubleDamBreak();
+    //SPHSystem* sphSystem = simpleDamBreak();
+    SPHSystem* sphSystem = doubleDamBreak();
 
     // System setup
     System::setParticleSystem(sphSystem);
@@ -51,9 +51,8 @@ SPHSystem* simpleDamBreak()
 
 SPHSystem* doubleDamBreak()
 {
-    float prad = 0.023f;
+    float prad = 0.021f;
     CustomParticle* p = new CustomParticle(prad);
-    SPHSystem* sphSystem = new SPHSystem(p);
     std::vector<Fluid> fluid;
     glm::vec3 min(-1.584474503993988, -1.5792612135410309, -1.5781463980674744);
     glm::vec3 max(-0.4316301941871643, 0.6732102334499359, -0.42530208826065063);
@@ -61,8 +60,14 @@ SPHSystem* doubleDamBreak()
     min = glm::vec3(0.42687326669692993, -1.5792612135410309, 0.43262726068496704);
     max = glm::vec3(1.5797175765037537,  0.6732102334499359, 1.5854715704917908);
     fluid.push_back({min, max}); 
+
+    SPHSystem* sphSystem = new SPHSystem(p);
     sphSystem->setFluid(fluid);
     sphSystem->setDomain(glm::vec3(-1.600000023841858, -1.603513240814209, -1.600000023841858),  glm::vec3(1.600000023841858, 8.03462553024292, 1.600000023841858));
+    sphSystem->setStiffness(100.0f);
+    sphSystem->setViscosity(0.1f);
+    sphSystem->setTimeStep(0.004f);
+    sphSystem->setReferenceDensity(1000.0f);
 
     return sphSystem;
 }

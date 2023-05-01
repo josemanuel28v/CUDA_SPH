@@ -11,8 +11,7 @@ in vec2 vtextcoord;
 
 out vec2 ftextcoord;
 flat out vec4 center; 
-flat out mat4 fmvp;
-out vec4 fpos;
+flat out mat4 fmv;
 out vec4 fcolor;
 
 void main()
@@ -37,7 +36,6 @@ void main()
 
     center = ppos;
     fcolor = pcolor;
-    fpos = model * vpos;
-    fmvp = proj * view * model;
-    gl_Position = fmvp * vpos;
+    fmv = view * model;
+    gl_Position = proj * fmv * vpos;
 }

@@ -7,51 +7,31 @@ uniform mat4 proj;
 
 in vec2 ftextcoord;
 flat in vec4 center; 
-flat in mat4 fmvp;
-in vec4 fpos;
+flat in mat4 fmv;
 in vec4 fcolor;
 
 out vec4 fragColor;
 
-// void makeSphereA(out vec3 cameraPos, out vec3 cameraNormal)
-// {
-// 	vec2 mapping = ftextcoord * 2.0F - 1.0F;
-//     //float d = dot(mapping, mapping);
+void computeNormalAndDepth(out vec3 normal)
+{
+    vec2 mapping = ftextcoord * 2.0f - 1.0f;
+    float d = dot(mapping, mapping);
 
-//     vec3 cameraSpherePos = vec3(fmvp * fpos);
+    if (d > 1.0) discard; // Descartar el exterior del circulo
 
-//     vec3 cameraPlanePos = vec3(mapping * radius, 0.0) + cameraSpherePos;
-//     vec3 rayDirection = normalize(cameraPlanePos);
+    float z = sqrt(1.0f - d);
+    normal = /*mat3(inverse(transpose(fmv))) **/ normalize(vec3(mapping, z));
+    vec3 cameraPos = vec3(fmv * center) + radius * normal;
 
-//     float B = 2.0 * dot(rayDirection, -cameraSpherePos);
-//     float C = dot(cameraSpherePos, cameraSpherePos) - (radius * radius);
-
-//     float det = (B * B) - (4 * C);
-//     if(det < 0.0)
-//         discard;
-
-//     float sqrtDet = sqrt(det);
-//     float posT = (-B + sqrtDet)/2;
-//     float negT = (-B - sqrtDet)/2;
-
-//     float intersectT = min(posT, negT);
-//     cameraPos = rayDirection * intersectT;
-//     cameraNormal = normalize(cameraPos - cameraSpherePos);
-
-// 	vec4 clipPos = proj * vec4(cameraPos, 1.0);
-//     float ndcDepth = clipPos.z / clipPos.w;
-//     gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
-
-//     //cameraNormal = mat3(transpose(fmvp)) * cameraNormal;
-// 	//cameraNormal = mat3(inverse(transpose(fmvp))) * cameraNormal;
-// 	cameraNormal = normalize(cameraNormal);
-// }
+    vec4 clipPos = proj * vec4(cameraPos, 1.0);
+    float ndcDepth = clipPos.z / clipPos.w;
+    gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
+}
 
 void main()
 {
-    if (length(center - fpos) > radius) discard;
-    //vec3 cameraPos, normal;
-    //makeSphere(cameraPos, normal);
+    vec3 normal;
+    computeNormalAndDepth(normal);
 
     fragColor = fcolor;
 

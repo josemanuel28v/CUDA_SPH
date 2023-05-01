@@ -60,8 +60,8 @@ std::string RenderProgram::readFile(const std::string fileName)
 	}
 }
 
-void RenderProgram::setupShaderVarList() {
-	
+void RenderProgram::setupShaderVarList() 
+{	
 	int count = 0;
 	int bufSize = 100;
 	char* name = new char[bufSize];
