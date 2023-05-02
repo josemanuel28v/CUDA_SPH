@@ -41,6 +41,8 @@ public:
    // SPH computation
    void reset(cudaGraphicsResource* positionBufferObject, glm::vec4* h_positions);
    void step(VAO_t positionBufferObject);
+   void stepSorted(VAO_t positionBufferObject);
+   void stepUnsorted(VAO_t positionBufferObject);
    void release();
 
 private:
@@ -91,6 +93,18 @@ private:
    uint32_t* d_particleIndexBuffer = nullptr;
    uint32_t* d_cellOffsetBuffer = nullptr;
 };
+
+struct compare_cells
+{
+   __device__
+   bool operator()(const uint& i, const uint& j) const
+   {
+      return cellIndexBuffer[i] < cellIndexBuffer[j];
+   }
+
+   uint* cellIndexBuffer;
+};
+
 
 
 

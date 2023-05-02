@@ -31,7 +31,7 @@ int main()
 
 SPHSystem* simpleDamBreak()
 {
-    float prad = 0.023f;
+    float prad = 0.023f; // 0.023 para 80000 particles 0.3 para debug
     CustomParticle* p = new CustomParticle(prad);
     glm::vec3 min(-1.0f, -1.0f, -1.0f);
     glm::vec3 max(1.0f, 1.0f, 1.0f);
@@ -51,7 +51,7 @@ SPHSystem* simpleDamBreak()
 
 SPHSystem* doubleDamBreak()
 {
-    float prad = 0.021f;
+    float prad = 0.021f; 
     CustomParticle* p = new CustomParticle(prad);
     std::vector<Fluid> fluid;
     glm::vec3 min(-1.584474503993988, -1.5792612135410309, -1.5781463980674744);

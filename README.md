@@ -12,3 +12,11 @@ El código ha sido probado en dos configuraciones de sistema operativo diferente
  - Ubuntu 22.04 de 64 bits, CMake 0.0.0 y GCC 11.3.0.
 
 En ambos casos se ha testeado con CUDA 12.1.
+
+## Instrucciones para construir el proyecto
+
+    1. !mkdir build && cd build
+    2. !cmake --build . --config Release
+    3. ./Release/SPH(.exe en Windows)
+
+Nota: El paso 3 debe realizarse desde la carpeta build ya que las rutas a recursos son relativas a esta carpeta.

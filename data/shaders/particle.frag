@@ -33,18 +33,26 @@ vec3 computeNormalAndDepth()
     return normal;
 }
 
+int discardExterior()
+{
+    vec2 mapping = ftextcoord * 2.0f - 1.0f;
+    float d = dot(mapping, mapping);
+
+    if (d > 0.9) 
+        return 1;
+    else 
+        return 0;
+}
+
 void main()
 {
     vec3 normal = computeNormalAndDepth();
+    //if (discardExterior() == 1) discard;
 
     fragColor = fcolor;
 
     if (texturing == 1)
     {
         fragColor = texture2D(colorText, ftextcoord) * fragColor;
-    }
-    else if (texturing == 11)
-    {
-        fragColor = vec4(normal, 1.0f);
     }
 }        

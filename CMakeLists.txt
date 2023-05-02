@@ -12,7 +12,7 @@ include_directories(
     ${CMAKE_SOURCE_DIR}/extern/glm/inc
     ${CMAKE_SOURCE_DIR}/extern/glfw/include
     ${CMAKE_SOURCE_DIR}/extern/glfw/deps
-    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}   # Necesario en Linux
+    ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}   # Necesario en Linux para cuda_gl_interop.h
 )
 
 # Source files to compile
@@ -29,12 +29,12 @@ endif()
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows") 
     target_compile_options(SPH
         PRIVATE $<$<COMPILE_LANGUAGE:CXX>: /O2 /arch:AVX2 /fp:fast>
-        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda -O3 --use_fast_math -diag-suppress 20012,3012># --gpu-architecture=sm_75>
+        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -O3 --use_fast_math>
     )
 elseif(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
     target_compile_options(SPH
     PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -O3 -march=native -ffast-math>
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda -O3 --use_fast_math -diag-suppress 20012,3012># --gpu-architecture=sm_75>
+    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -O3 --use_fast_math>
     )
 endif()
 
