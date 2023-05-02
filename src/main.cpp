@@ -19,8 +19,8 @@ int main()
     Camera* camera = new CameraKeyboard(Camera::PERSPECTIVE, position, up, lookAt);
 
     // SPHSystem setup
-    //SPHSystem* sphSystem = simpleDamBreak();
-    SPHSystem* sphSystem = doubleDamBreak();
+    SPHSystem* sphSystem = simpleDamBreak();
+    //SPHSystem* sphSystem = doubleDamBreak();
 
     // System setup
     System::setParticleSystem(sphSystem);

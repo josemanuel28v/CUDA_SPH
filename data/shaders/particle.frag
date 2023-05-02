@@ -12,31 +12,39 @@ in vec4 fcolor;
 
 out vec4 fragColor;
 
-void computeNormalAndDepth(out vec3 normal)
+vec3 computeNormalAndDepth()
 {
     vec2 mapping = ftextcoord * 2.0f - 1.0f;
     float d = dot(mapping, mapping);
 
-    if (d > 1.0) discard; // Descartar el exterior del circulo
+    if (d > 0.9) discard; // Descartar el exterior del circulo
 
     float z = sqrt(1.0f - d);
-    normal = /*mat3(inverse(transpose(fmv))) **/ normalize(vec3(mapping, z));
-    vec3 cameraPos = vec3(fmv * center) + radius * normal;
+    mat3 normalMatrix = transpose(inverse(mat3(fmv)));
+    vec3 normal = normalize(normalMatrix * vec3(mapping, z));
 
-    vec4 clipPos = proj * vec4(cameraPos, 1.0);
-    float ndcDepth = clipPos.z / clipPos.w;
-    gl_FragDepth = ((gl_DepthRange.diff * ndcDepth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
+    // Corrección de perspectiva
+    vec4 clipPos = proj * (fmv * center + radius * vec4(normal, 1.0));
+    float depth = clipPos.z / clipPos.w;
+
+    // Proyección NDC
+    gl_FragDepth = ((gl_DepthRange.diff * depth) + gl_DepthRange.near + gl_DepthRange.far) / 2.0;
+
+    return normal;
 }
 
 void main()
 {
-    vec3 normal;
-    computeNormalAndDepth(normal);
+    vec3 normal = computeNormalAndDepth();
 
     fragColor = fcolor;
 
     if (texturing == 1)
     {
         fragColor = texture2D(colorText, ftextcoord) * fragColor;
+    }
+    else if (texturing == 11)
+    {
+        fragColor = vec4(normal, 1.0f);
     }
 }        
