@@ -5,7 +5,7 @@ option(USE_CUDA "Use CUDA" ON)
 set(CMAKE_CXX_STANDARD 20)
 
 # CUDA architectures
-set(CMAKE_CUDA_ARCHITECTURES 70 75)
+set(CMAKE_CUDA_ARCHITECTURES 75)
 
 # Include directories
 include_directories(
@@ -27,25 +27,40 @@ else(USE_CUDA)
 endif()
 
 # MSVC Compiler
-if(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows") 
-    target_compile_options(SPH
-             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Debug>: /arch:AVX2 /fp:fast>>
-             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Release>: /O2 /arch:AVX2 /fp:fast>>
-    )
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(SPH
+             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: /arch:AVX2 /fp:fast>
+        )
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(SPH
+             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: /O2 /arch:AVX2 /fp:fast>
+        )
+    endif()
 
 # GCC Compiler
-elseif(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
-    target_compile_options(SPH
-        PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Debug>: -march=native -ffast-math>>
-        PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Release>: -O3 -march=native -ffast-math>>
-    )
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_compile_options(SPH
+            PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -march=native -ffast-math>
+        )
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(SPH
+            PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -O3 -march=native -ffast-math>
+        )
+    endif()
 endif()
 
 # NVCC Compiler
-target_compile_options(SPH
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Debug>: --use_fast_math>>
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Release>: -O3 --use_fast_math>>
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(SPH
+        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Debug>: --use_fast_math>>
+    )
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(SPH
+        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Release>: -O3 --use_fast_math>>
+    )
+endif()
 
 message(STATUS "USE_CUDA: ${USE_CUDA}")
 if(USE_CUDA)
