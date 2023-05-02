@@ -26,17 +26,26 @@ else(USE_CUDA)
     add_executable(SPH ${cpu_source_files})
 endif()
 
+# MSVC Compiler
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Windows") 
     target_compile_options(SPH
-        PRIVATE $<$<COMPILE_LANGUAGE:CXX>: /O2 /arch:AVX2 /fp:fast>
-        PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -O3 --use_fast_math>
+             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Debug>: /arch:AVX2 /fp:fast>>
+             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Release>: /O2 /arch:AVX2 /fp:fast>>
     )
+
+# GCC Compiler
 elseif(CMAKE_HOST_SYSTEM_NAME MATCHES "Linux")
     target_compile_options(SPH
-    PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -O3 -march=native -ffast-math>
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: -O3 --use_fast_math>
+        PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Debug>: -march=native -ffast-math>>
+        PRIVATE $<$<COMPILE_LANGUAGE:CXX>: $<$<CONFIG:Release>: -O3 -march=native -ffast-math>>
     )
 endif()
+
+# NVCC Compiler
+target_compile_options(SPH
+    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Debug>: --use_fast_math>>
+    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>: $<$<CONFIG:Release>: -O3 --use_fast_math>>
+)
 
 message(STATUS "USE_CUDA: ${USE_CUDA}")
 if(USE_CUDA)

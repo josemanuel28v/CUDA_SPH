@@ -3,11 +3,11 @@
 CustomParticle::CustomParticle(float radius) : Particle(radius)
 {
     // Load texture
-    Texture* texture = new Texture("../data/textures/particle.png");
+    Texture* texture = new Texture("../../data/textures/particle.png");
 
     // Set program and texture to material
     Material* material = new Material();
-    material->loadPrograms({"../data/shaders/particle.vert", "../data/shaders/particle.frag"});
+    material->loadPrograms({"../../data/shaders/particle.vert", "../../data/shaders/particle.frag"});
     material->setTexture(texture);
     material->setTexturing(true);
 
