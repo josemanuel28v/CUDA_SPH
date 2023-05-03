@@ -24,8 +24,9 @@ void System::mainLoop()
 
     if (psystem)
     {
-        render->setupObject(psystem->getPrototype(), psystem->getSize(), psystem->getPositions());
         psystem->init();
+        render->setupObject(psystem->getPrototype(), psystem->getSize(), psystem->getPositions());
+        psystem->prestep();
     }
 
     while (!exit)
@@ -39,7 +40,7 @@ void System::mainLoop()
         camera->step(tm.getDeltaTime());
         if (!pause) psystem->step(tm.getDeltaTime());
 
-        render->drawObject(psystem->getPrototype(), psystem->getSize());
+        render->drawObject(psystem->getPrototype(), psystem->getDrawSize());
         render->swapBuffers();
 
         glfwPollEvents();

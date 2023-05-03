@@ -46,8 +46,8 @@ int discardExterior()
 
 void main()
 {
-    vec3 normal = computeNormalAndDepth();
-    //if (discardExterior() == 1) discard;
+    //vec3 normal = computeNormalAndDepth();
+    if (discardExterior() == 1) discard;
 
     fragColor = fcolor;
 

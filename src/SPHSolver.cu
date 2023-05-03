@@ -48,8 +48,20 @@ __constant__ glm::ivec3 NEIGH_DISPLACEMENTS[27];
         }\
     }\
 
+__device__ glm::vec4 colorById(uint32_t id)
+{
+    curandState_t state;
+    curand_init(id, 0, 0, &state); 
+    return glm::vec4(
+        curand_uniform(&state),
+        curand_uniform(&state),
+        curand_uniform(&state),
+        1.0f
+    );
+}
+
 // (80000 particulas y + 50 fps)
-__device__ uint32_t getHashedCell2(glm::ivec3 cellIdx, uint32_t size)
+__device__ uint32_t getHashedCell3(glm::ivec3 cellIdx, uint32_t size)
 {
     const uint32_t p1 = 73856093; 
     const uint32_t p2 = 19349663;
@@ -62,7 +74,7 @@ __device__ uint32_t getHashedCell2(glm::ivec3 cellIdx, uint32_t size)
 }
 
 // No negativos (con 80000 particulas 71 fps)
-__device__ uint32_t getHashedCell1(const glm::ivec3 key, const uint32_t size) 
+__device__ uint32_t getHashedCell2(const glm::ivec3 key, const uint32_t size) 
 {
     uint32_t hash = 2166136261u;
     const uint32_t prime = 16777619u;
@@ -97,12 +109,13 @@ __device__ uint32_t getHashedCell(const glm::ivec3 key, const uint32_t size)
     return hash % size;
 }
 
-__global__ void computeDensity(glm::vec4* positions, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* density0_ptr, float* cubicConst_ptr, float* stiffness_ptr, int* size_ptr)
+__global__ void computeDensity(glm::vec4* positions, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* density0_ptr, float* cubicConst_ptr, float* stiffness_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int size = *size_ptr;
+    int fluidSize = *fluidSize_ptr;
+    int size = fluidSize + *boundarySize_ptr;
 
-    if (i < size)
+    if (i < fluidSize)
     {
         float h = *h_ptr;
         float mass = *mass_ptr;
@@ -157,12 +170,13 @@ __global__ void computeDensityUnsorted(glm::vec4* positions, float* densities, f
     }
 }
 
-__global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3* velocities, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* spikyConst_ptr, float* viscosity_ptr, int* size_ptr)
+__global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3* velocities, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* spikyConst_ptr, float* viscosity_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int size = *size_ptr;
+    int fluidSize = *fluidSize_ptr;
+    int size = fluidSize + *boundarySize_ptr;
 
-    if (i < size)
+    if (i < fluidSize)
     {
         float h = *h_ptr;
         float mass = *mass_ptr;
@@ -341,32 +355,43 @@ __global__ void insertParticlesUnsorted(glm::vec4* positions, uint32_t* particle
     if (i < size)
     {
         float h = *h_ptr;
-        //uint32_t idx = particleIndexBuffer[i]; // Si en cada iteracion se resetea particleIndexBuffer no hace falta coger el id de la partícula de el
+        //uint32_t idx = particleIndexBuffer[i]; // Si en cada iteracion se resetea particleIndexBuffer no hace falta coger el id de la partícula de particleIndexBuffer
         uint32_t idx = i;
         glm::vec3 pos = glm::vec3(positions[idx]);
 
         glm::ivec3 cell = glm::floor(pos / h);
         uint32_t hashedCell = getHashedCell(cell, size * 2);
         cellIndexBuffer[idx] = hashedCell;
-
-        // Color por celda
-        // curandState_t state;
-        // curand_init(hashedCell, 0, 0, &state); 
-        // glm::vec4 randColor = glm::vec4(
-        //     curand_uniform(&state),
-        //     curand_uniform(&state),
-        //     curand_uniform(&state),
-        //     1.0f
-        // );
-        // colors[idx] = randColor;
-
     }
 }
 
-__global__ void insertParticles(glm::vec4* positions, uint32_t* cellIndexBuffer, glm::vec4* colors, float* h_ptr, int* size_ptr)
+__global__ void insertParticles(glm::vec4* positions, uint32_t* cellIndexBuffer, glm::vec4* colors, float* h_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
 {
+    int fluidSize = *fluidSize_ptr;
+    int size = *boundarySize_ptr + fluidSize;
     int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int size = *size_ptr;
+
+    if (i < fluidSize)
+    {
+        float h = *h_ptr;
+
+        glm::vec3 pos = glm::vec3(positions[i]);
+
+        glm::ivec3 cell = glm::floor(pos / h);
+        uint32_t hashedCell = getHashedCell(cell, size * 2);
+        cellIndexBuffer[i] = hashedCell;
+
+        // Color por celda
+        //colors[i] = colorById(hashedCell);
+    }
+}
+
+__global__ void insertBoundaryParticles(glm::vec4* positions, uint32_t* cellIndexBuffer, glm::vec4* colors, float* h_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
+{
+    int boundarySize = *boundarySize_ptr;
+    int fluidSize = *fluidSize_ptr;
+    int size = boundarySize + fluidSize;
+    int i = blockDim.x * blockIdx.x + threadIdx.x + fluidSize;
 
     if (i < size)
     {
@@ -377,6 +402,9 @@ __global__ void insertParticles(glm::vec4* positions, uint32_t* cellIndexBuffer,
         glm::ivec3 cell = glm::floor(pos / h);
         uint32_t hashedCell = getHashedCell(cell, size * 2);
         cellIndexBuffer[i] = hashedCell;
+
+        // Color por celda
+        //colors[i] = colorById(hashedCell);
     }
 }
 
@@ -396,6 +424,20 @@ __global__ void computeCellOffset(uint32_t* cellIndexBuffer, uint32_t* cellOffse
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int size = *size_ptr;
+
+    if (i < size)
+    {
+        uint32_t hashedCell = cellIndexBuffer[i];
+        atomicMin(&cellOffsetBuffer[hashedCell], uint32_t(i));
+    }
+}
+
+__global__ void computeBoundaryCellOffset(uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, int* boundarySize_ptr, int* fluidSize_ptr)
+{
+    int boundarySize = *boundarySize_ptr;
+    int fluidSize = *fluidSize_ptr;
+    int size = boundarySize + fluidSize;
+    int i = blockDim.x * blockIdx.x + threadIdx.x + fluidSize;
 
     if (i < size)
     {
@@ -430,30 +472,31 @@ void SPHSolver::stepSorted(VAO_t vao)
     // Reset celloffsets
     resetOffset<<<gridDim, blockDim>>>(d_cellOffsetBuffer, d_size);
 
-    gridDim = dim3((unsigned) ceil(*size / (float) BLOCK_SIZE));
+    gridDim = dim3((unsigned) ceil(*fluidSize / (float) BLOCK_SIZE));
     
     // Insert Particles 
-    insertParticles<<<gridDim, blockDim>>>(d_positions, d_cellIndexBuffer, d_colors, d_h, d_size);
+    insertParticles<<<gridDim, blockDim>>>(d_positions, d_cellIndexBuffer, d_colors, d_h, d_boundarySize, d_fluidSize);
 
     // Ordenar cellIndexBuffer, positions y velocities
     thrust::device_ptr<uint32_t> cellIndexPtr = thrust::device_pointer_cast(d_cellIndexBuffer);
     thrust::device_ptr<glm::vec4> posPtr = thrust::device_pointer_cast(d_positions);
     thrust::device_ptr<glm::vec3> velPtr = thrust::device_pointer_cast(d_velocities);
-    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*size), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr)));
+    //thrust::device_ptr<glm::vec4> colPtr = thrust::device_pointer_cast(d_colors); // Solo es necesario ordenar los colores si se pinta por id o cellid
+    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*fluidSize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr)));//, colPtr)));
 
     // Cell offsets
-    computeCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBuffer, d_size);
+    computeCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBuffer, d_fluidSize);
 
-    computeDensity<<<gridDim, blockDim>>>(d_positions, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_density0, d_cubicConstK, d_stiffness, d_size);
+    computeDensity<<<gridDim, blockDim>>>(d_positions, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_density0, d_cubicConstK, d_stiffness, d_boundarySize, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
-    computeForces<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_spikyConst, d_viscosity, d_size);
+    computeForces<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_spikyConst, d_viscosity, d_boundarySize, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
-    integration<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_colors, d_timeStep, d_size);
+    integration<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_colors, d_timeStep, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
-    simpleBoundaryCondition<<<gridDim, blockDim>>>(d_positions, d_velocities, d_minDomain, d_maxDomain, d_size);
+    simpleBoundaryCondition<<<gridDim, blockDim>>>(d_positions, d_velocities, d_minDomain, d_maxDomain, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
     // Unmap resources
@@ -519,40 +562,85 @@ void SPHSolver::stepUnsorted(VAO_t vao)
 void SPHSolver::init()
 {
     float h = *this->h;
+    int fluidSize = *this->fluidSize;
+    int boundarySize = *this->boundarySize; // Si se utiliza la version sin ordenación boundarySize debe ser 0
     int size = *this->size;
-
+    
     // Variables que no existen fuera de la clase SPHSolver y por lo tanto se reserva memoria para ellas
     this->spikyConst = new float(45.0f / ((float) (M_PI * pow(h, 6.0))));
     this->cubicConstK = new float(8.0f / ((float) M_PI * h * h * h));   
-    this->particleIndexBuffer = new uint32_t[size];
-    this->cellIndexBuffer = new uint32_t[size];
-    this->cellOffsetBuffer = new uint32_t[2 * size];
+    this->particleIndexBuffer = new uint32_t[fluidSize]; // Solo en la version sin ordenacion
+    this->cellIndexBuffer = new uint32_t[fluidSize + boundarySize]; // fluid y boundary comparten este array
 
-    for (int i = 0; i < size; ++i)
+    // Numero de celdas igual al doble del tamaño total (2 * (fluidSize + boundarySize))
+    this->cellOffsetBuffer = new uint32_t[2 * size];
+    this->cellOffsetBoundary = new uint32_t[2 * size];
+
+    for (int i = 0; i < fluidSize; ++i)
     {
         particleIndexBuffer[i] = (uint32_t) i;
-    }
+    }    
 
     allocateCudaMemory();
 }
 
-void SPHSolver::reset(cudaGraphicsResource* positionBufferObject, glm::vec4* h_positions)
+void SPHSolver::reset(VAO_t vao, glm::vec4* h_positions)
 {
     size_t bytes;
     glm::vec4* d_positions;
 
-    gpuErrchk(cudaGraphicsMapResources(1, &positionBufferObject, 0)); // Map resources
-    gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&d_positions, &bytes, positionBufferObject)); // Get pointer of mapped data
+    gpuErrchk(cudaGraphicsMapResources(1, &vao.cuda_p_id, 0)); // Map resources
+    gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&d_positions, &bytes, vao.cuda_p_id)); // Get pointer of mapped data
 
     dim3 blockDim(BLOCK_SIZE);
     dim3 gridDim((unsigned) ceil(*size / (float) BLOCK_SIZE));
     resetCuda<<<gridDim, blockDim>>>(d_velocities, d_forces, d_size);
     gpuErrchk(cudaGetLastError());
 
-    gpuErrchk(cudaGraphicsUnmapResources(1, &positionBufferObject, 0)); // Unmap resources
+    gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_p_id, 0)); // Unmap resources
 
     // Copy positions
     gpuErrchk(cudaMemcpy(d_positions, h_positions, sizeof(glm::vec4) * *size, cudaMemcpyHostToDevice));
+
+    precomputeBoundaryNeighbors(vao);
+}
+
+void SPHSolver::precomputeBoundaryNeighbors(VAO_t vao)
+{
+    size_t bytes;
+    glm::vec4* d_positions;
+    glm::vec4* d_colors;
+
+    // Map resources (positions and colors)
+    gpuErrchk(cudaGraphicsMapResources(1, &vao.cuda_p_id, 0)); 
+    gpuErrchk(cudaGraphicsMapResources(1, &vao.cuda_c_id, 0)); 
+    // Get pointers of mapped data (positions and colors)
+    gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&d_positions, &bytes, vao.cuda_p_id)); 
+    gpuErrchk(cudaGraphicsResourceGetMappedPointer((void**)&d_colors, &bytes, vao.cuda_c_id)); 
+
+    dim3 blockDim(BLOCK_SIZE);
+    dim3 gridDim((unsigned) ceil(2 * *size / (float) BLOCK_SIZE));
+
+    // Reset boundary cell offsets
+    resetOffset<<<gridDim, blockDim>>>(d_cellOffsetBoundary, d_size);
+
+    gridDim = dim3((unsigned) ceil(*boundarySize / (float) BLOCK_SIZE));
+    
+    // Insert boundary particles 
+    insertBoundaryParticles<<<gridDim, blockDim>>>(d_positions, d_cellIndexBuffer, d_colors, d_h, d_boundarySize, d_fluidSize);
+
+    // Ordenar cellIndexBuffer, positions y velocities (La parte de los arrays correspondiente a las boundary particles [fluidSize, size])
+    thrust::device_ptr<uint32_t> cellIndexPtr = thrust::device_pointer_cast(d_cellIndexBuffer + *fluidSize);
+    thrust::device_ptr<glm::vec4> posPtr = thrust::device_pointer_cast(d_positions + *fluidSize);
+    thrust::device_ptr<glm::vec3> velPtr = thrust::device_pointer_cast(d_velocities + *fluidSize);
+    thrust::device_ptr<glm::vec4> colPtr = thrust::device_pointer_cast(d_colors + *fluidSize);
+    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*boundarySize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr, colPtr)));
+
+    // Cell offsets
+    computeBoundaryCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBoundary, d_boundarySize, d_fluidSize);
+
+    gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_p_id, 0)); // Unmap resources
+    gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_c_id, 0)); 
 }
 
 void SPHSolver::allocateCudaMemory()
@@ -568,6 +656,8 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMalloc(&d_stiffness, sizeof(float)));
     gpuErrchk(cudaMalloc(&d_viscosity, sizeof(float)));
     gpuErrchk(cudaMalloc(&d_size, sizeof(int)));
+    gpuErrchk(cudaMalloc(&d_fluidSize, sizeof(int)));
+    gpuErrchk(cudaMalloc(&d_boundarySize, sizeof(int)));
     gpuErrchk(cudaMalloc(&d_densities, sizeof(float) * *size));
     gpuErrchk(cudaMalloc(&d_pressures, sizeof(float) * *size));
     gpuErrchk(cudaMalloc(&d_forces, sizeof(glm::vec3) * *size));
@@ -575,8 +665,9 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMalloc(&d_minDomain, sizeof(glm::vec3)));
     gpuErrchk(cudaMalloc(&d_maxDomain, sizeof(glm::vec3)));
     gpuErrchk(cudaMalloc(&d_cellIndexBuffer, sizeof(uint32_t) * (*size)));
-    gpuErrchk(cudaMalloc(&d_particleIndexBuffer, sizeof(uint32_t) * (*size)));
+    gpuErrchk(cudaMalloc(&d_particleIndexBuffer, sizeof(uint32_t) * (*fluidSize)));
     gpuErrchk(cudaMalloc(&d_cellOffsetBuffer, sizeof(uint32_t) * (*size * 2)));
+    gpuErrchk(cudaMalloc(&d_cellOffsetBoundary, sizeof(uint32_t) * (*size * 2)));
 
     // Copiar datos a GPU
     gpuErrchk(cudaMemcpy(d_h, h, sizeof(float), cudaMemcpyHostToDevice));
@@ -589,6 +680,8 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMemcpy(d_stiffness, stiffness, sizeof(float), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_viscosity, viscosity, sizeof(float), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_size, size, sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_fluidSize, fluidSize, sizeof(int), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_boundarySize, boundarySize, sizeof(int), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_densities, densities, sizeof(float) * (*size), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_pressures, pressures, sizeof(float) * (*size), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_forces, forces, sizeof(float) * (*size), cudaMemcpyHostToDevice));
@@ -596,8 +689,9 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMemcpy(d_minDomain, minDomain, sizeof(glm::vec3), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_maxDomain, maxDomain, sizeof(glm::vec3), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_cellIndexBuffer, cellIndexBuffer, sizeof(uint32_t) * (*size), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(d_particleIndexBuffer, particleIndexBuffer, sizeof(uint32_t) * (*size), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_particleIndexBuffer, particleIndexBuffer, sizeof(uint32_t) * (*fluidSize), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_cellOffsetBuffer, cellOffsetBuffer, sizeof(uint32_t) * (*size * 2), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_cellOffsetBoundary, cellOffsetBoundary, sizeof(uint32_t) * (*size * 2), cudaMemcpyHostToDevice));
 
     // Copy constant symbol
     glm::ivec3 displacements[] = { glm::ivec3(-1, -1, -1), glm::ivec3(-1, -1, 0), glm::ivec3(-1, -1, 1), glm::ivec3(-1, 0, -1), glm::ivec3(-1, 0, 0), glm::ivec3(-1, 0, 1), glm::ivec3(-1, 1, -1), glm::ivec3(-1, 1, 0), glm::ivec3(-1, 1, 1), glm::ivec3(0, -1, -1), glm::ivec3(0, -1, 0), glm::ivec3(0, -1, 1), glm::ivec3(0, 0, -1), glm::ivec3(0, 0, 0), glm::ivec3(0, 0, 1), glm::ivec3(0, 1, -1), glm::ivec3(0, 1, 0), glm::ivec3(0, 1, 1), glm::ivec3(1, -1, -1), glm::ivec3(1, -1, 0), glm::ivec3(1, -1, 1), glm::ivec3(1, 0, -1), glm::ivec3(1, 0, 0), glm::ivec3(1, 0, 1), glm::ivec3(1, 1, -1), glm::ivec3(1, 1, 0), glm::ivec3(1, 1, 1)};

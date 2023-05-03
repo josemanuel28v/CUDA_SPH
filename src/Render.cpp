@@ -28,8 +28,8 @@ void Render::init()
     }
      
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(0); // Disable vsync
     gladLoadGL(glfwGetProcAddress); // con gl.h (no se enlaza explicitamente con glad.lib)
-    //gladLoadGLLoader((GLADloadproc) glfwGetProcAddress); // con glad.h (se enlaza explicitamente con glad.lib)
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -123,13 +123,11 @@ void Render::drawObject(Object *obj, unsigned numInstances)
     Mesh3D* mesh = obj->getMesh();
     Material* mat = mesh->getMaterial();
 
-    // Activar buffers antes de usar el programa
-    VAO_t vao = bufferObjects[mesh->getId()];
-
     // Attributes
     mat->prepare();
 
     // Dibujado
+    VAO_t vao = bufferObjects[mesh->getId()];
     glBindVertexArray(vao.id);
     glDrawElementsInstanced(GL_TRIANGLES, (GLsizei) mesh->getIndices()->size(), GL_UNSIGNED_INT, nullptr, numInstances); 
     glBindVertexArray(0);

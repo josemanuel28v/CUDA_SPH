@@ -7,28 +7,36 @@ struct Fluid
     glm::vec3 min;
     glm::vec3 max;
 };
-
+ 
 class SPHSystem : public ParticleSystem
 {
 public:
 
     SPHSystem(Particle* prototype);
     ~SPHSystem() { if (solver) delete solver; }
+    // Debe usarse en el orden: createFluid -> createBoundary
     uint createFluid(const std::vector<Fluid>& fluid);
+    uint createBoundary(glm::vec3 min, glm::vec3 max);
     void init() override;
+    void prestep() override;
     void step(double deltaTime) override;
     void reset() override;
     void release();
 
     void setSmoothingLength(float h) { this->h = h; }
-    void setDomain(glm::vec3 min, glm::vec3 max) { this-> minDomain = min; this -> maxDomain = max; }
+    void setBoundary(glm::vec3 min, glm::vec3 max);
     void setStiffness(float stiffness) { this->stiffness = stiffness; }
     void setViscosity(float viscosity) { this->viscosity = viscosity; }
     void setReferenceDensity(float density0) { this->density0 = density0; }
     void setTimeStep(float timeStep) { this->timeStep = timeStep; }
-    void setFluid(std::vector<Fluid> fluid) { this->size = createFluid(fluid); this->fluid = fluid;}
+    void setFluid(std::vector<Fluid> fluid);
+
+    uint getDrawSize() override { return fluidSize; } 
 
 private:
+
+    uint fluidSize;
+    uint boundarySize;
 
     SPHSolver* solver;
 

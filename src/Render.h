@@ -18,7 +18,16 @@ public:
     bool isClosed();
     GLFWwindow* getWindow() { return window; }
 
-    VAO_t getBufferObject(uint meshId) { return bufferObjects[meshId]; }
+    VAO_t getBufferObject(uint meshId) 
+    { 
+        if (bufferObjects.find(meshId) != bufferObjects.end())
+        {
+            return bufferObjects[meshId]; 
+        }
+        
+        VAO_t vao;
+        return vao;
+    }
 
 private:
 

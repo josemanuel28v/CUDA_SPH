@@ -40,7 +40,7 @@ SPHSystem* simpleDamBreak()
 
     SPHSystem* sphSystem = new SPHSystem(p);
     sphSystem->setFluid({{min, max}});
-    sphSystem->setDomain(minDomain, maxDomain);
+    sphSystem->setBoundary(minDomain, maxDomain);
     sphSystem->setStiffness(100.0f);
     sphSystem->setViscosity(0.1f);
     sphSystem->setTimeStep(0.005f);
@@ -63,7 +63,7 @@ SPHSystem* doubleDamBreak()
 
     SPHSystem* sphSystem = new SPHSystem(p);
     sphSystem->setFluid(fluid);
-    sphSystem->setDomain(glm::vec3(-1.600000023841858, -1.603513240814209, -1.600000023841858),  glm::vec3(1.600000023841858, 8.03462553024292, 1.600000023841858));
+    sphSystem->setBoundary(glm::vec3(-1.600000023841858, -1.603513240814209, -1.600000023841858),  glm::vec3(1.600000023841858, 8.03462553024292, 1.600000023841858));
     sphSystem->setStiffness(100.0f);
     sphSystem->setViscosity(0.1f);
     sphSystem->setTimeStep(0.004f);

@@ -23,7 +23,9 @@ public:
    void setParticleRadius(float* radius) { this->radius = radius; }
    void setParticleMass(float* mass) { this->mass = mass; }
    void setReferenceDensity(float* density0) { this->density0 = density0; }
-   void setNumParticles(int* size) { this->size = size; }
+   void setSize(int* size) { this->size = size; }
+   void setFluidSize(int* size) { this->fluidSize = size; }
+   void setBoundarySize(int* size) { this->boundarySize = size; }
    void setDensities(float* densities) { this->densities = densities; }
    void setPressures(float* pressures) { this->pressures = pressures; }
    void setForces(glm::vec3* forces) { this->forces = forces; }
@@ -39,16 +41,21 @@ public:
    void freeCudaMemory();
 
    // SPH computation
-   void reset(cudaGraphicsResource* positionBufferObject, glm::vec4* h_positions);
-   void step(VAO_t positionBufferObject);
-   void stepSorted(VAO_t positionBufferObject);
-   void stepUnsorted(VAO_t positionBufferObject);
+   void reset(VAO_t, glm::vec4* h_positions);
+   void step(VAO_t vao);
+   void stepSorted(VAO_t vao);
+   void stepUnsorted(VAO_t vao);
    void release();
+
+   // Precomputation of static boundary neighbors
+   void precomputeBoundaryNeighbors(VAO_t vao);
 
 private:
 
    // Host pointers
    int* size = nullptr;
+   int* fluidSize = nullptr;
+   int* boundarySize = nullptr;
    float* timeStep = nullptr;
    float* h = nullptr; 
    float* mass = nullptr;
@@ -67,11 +74,15 @@ private:
 
    // Grid
    uint32_t* cellIndexBuffer = nullptr;
-   uint32_t* particleIndexBuffer = nullptr;
+   uint32_t* particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
    uint32_t* cellOffsetBuffer = nullptr;
+
+   uint32_t* cellOffsetBoundary = nullptr;
 
    // Device pointers
    int* d_size = nullptr;
+   int* d_fluidSize = nullptr;
+   int* d_boundarySize = nullptr;
    float* d_timeStep = nullptr;
    float* d_h = nullptr;
    float* d_mass = nullptr;
@@ -90,8 +101,10 @@ private:
 
    // Grid
    uint32_t* d_cellIndexBuffer = nullptr;
-   uint32_t* d_particleIndexBuffer = nullptr;
+   uint32_t* d_particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
    uint32_t* d_cellOffsetBuffer = nullptr;
+
+   uint32_t* d_cellOffsetBoundary = nullptr;
 };
 
 struct compare_cells
