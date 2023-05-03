@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.2)
 
 project(SPH CUDA CXX)
 option(USE_CUDA "Use CUDA" ON)
@@ -24,6 +24,14 @@ if(USE_CUDA)
     add_executable(SPH ${cpu_source_files} ${gpu_source_files})
 else(USE_CUDA)
     add_executable(SPH ${cpu_source_files})
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message(STATUS "Debug build")
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    message(STATUS "Release build")
+else()
+    message(STATUS "No build mode selected")
 endif()
 
 # MSVC Compiler
