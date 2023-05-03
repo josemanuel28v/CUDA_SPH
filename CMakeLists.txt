@@ -49,10 +49,19 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
 # GCC Compiler
 elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-            target_compile_options(SPH
+        # Ruta del ejecutable en modo Debug
+        set(RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/Debug)
+        file(MAKE_DIRECTORY ${RELEASE_DIRECTORY})
+        set_target_properties(SPH PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${RELEASE_DIRECTORY})
+        target_compile_options(SPH
             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -march=native -ffast-math>
         )
     elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+        # Ruta del ejecutable en modo Release
+        set(RELEASE_DIRECTORY ${CMAKE_BINARY_DIR}/Release)
+        file(MAKE_DIRECTORY ${RELEASE_DIRECTORY})
+        set_target_properties(SPH PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${RELEASE_DIRECTORY})
+
         target_compile_options(SPH
             PRIVATE $<$<COMPILE_LANGUAGE:CXX>: -O3 -march=native -ffast-math>
         )
