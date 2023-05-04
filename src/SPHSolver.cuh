@@ -76,8 +76,8 @@ private:
    uint32_t* cellIndexBuffer = nullptr;
    uint32_t* particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
    uint32_t* cellOffsetBuffer = nullptr;
-
    uint32_t* cellOffsetBoundary = nullptr;
+   float* volumes = nullptr;
 
    // Device pointers
    int* d_size = nullptr;
@@ -103,8 +103,8 @@ private:
    uint32_t* d_cellIndexBuffer = nullptr;
    uint32_t* d_particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
    uint32_t* d_cellOffsetBuffer = nullptr;
-
    uint32_t* d_cellOffsetBoundary = nullptr;
+   float* d_volumes = nullptr;
 };
 
 struct compare_cells

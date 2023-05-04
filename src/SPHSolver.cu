@@ -35,16 +35,32 @@ __constant__ glm::ivec3 NEIGH_DISPLACEMENTS[27];
     {\
         glm::ivec3 neighborIndex = cellIdx + NEIGH_DISPLACEMENTS[neighDispIdx];\
         uint32_t neighborHashedCell = getHashedCell(neighborIndex, size * 2);\
-        uint32_t neighborIterator = cellOffsetBuffer[neighborHashedCell];\
-        while(neighborIterator != (size * 2) && neighborIterator < size)\
+        uint32_t j = cellOffsetBuffer[neighborHashedCell];\
+        while(j != (size * 2) && j < fluidSize)\
         {\
-            uint32_t j = neighborIterator;\
             if(cellIndexBuffer[j] != neighborHashedCell)\
             {\
                 break;\
             }\
             code\
-            neighborIterator++;\
+            j++;\
+        }\
+    }\
+
+#define forall_boundary_neighbors(code)\
+    for (int neighDispIdx = 0; neighDispIdx < 27; ++neighDispIdx)\
+    {\
+        glm::ivec3 neighborIndex = cellIdx + NEIGH_DISPLACEMENTS[neighDispIdx];\
+        uint32_t neighborHashedCell = getHashedCell(neighborIndex, size * 2);\
+        uint32_t b = cellOffsetBoundary[neighborHashedCell];\
+        while(b != (size * 2) && b < size)\
+        {\
+            if(cellIndexBuffer[b] != neighborHashedCell)\
+            {\
+                break;\
+            }\
+            code\
+            b++;\
         }\
     }\
 
@@ -109,7 +125,7 @@ __device__ uint32_t getHashedCell(const glm::ivec3 key, const uint32_t size)
     return hash % size;
 }
 
-__global__ void computeDensity(glm::vec4* positions, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* density0_ptr, float* cubicConst_ptr, float* stiffness_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
+__global__ void computeDensity(glm::vec4* positions, float* densities, float* pressures, float* volumes, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, uint32_t* cellOffsetBoundary, float* h_ptr, float* mass_ptr, float* density0_ptr, float* cubicConst_ptr, float* stiffness_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int fluidSize = *fluidSize_ptr;
@@ -123,18 +139,25 @@ __global__ void computeDensity(glm::vec4* positions, float* densities, float* pr
         float density0 = *density0_ptr;
         float stiffness = *stiffness_ptr;
         glm::vec4 ri = positions[i];
-        glm::vec3 pos = glm::vec3(ri);
+        glm::ivec3 cellIdx = glm::floor(glm::vec3(ri) / h);
 
         float density = 0.0f;
-        glm::ivec3 cellIdx = glm::floor(pos / h);
-
         forall_fluid_neighbors
         (
             glm::vec3 rij = glm::vec3(ri - positions[j]);
-            density += cubicW(rij, h, cubicConst);
+            density += mass * cubicW(rij, h, cubicConst);
         );
 
-        density *= mass;
+        float bdensity = 0.0f;
+        forall_boundary_neighbors
+        (
+            glm::vec3 rib = glm::vec3(ri - positions[b]);
+            bdensity += density0 * volumes[b - fluidSize] * cubicW(rib, h, cubicConst); // El índice j sale de un array de tamaño fluidSize + boundarySize ya que volumes solo tiene tamaño boundarySize su indice sera j - fluidSize
+        );
+
+        //printf("fdens, bdens %f %f \n", density, bdensity);
+
+        density = density + bdensity;
         densities[i] = density;
         pressures[i] = max(0.0f, stiffness * (density - density0));
     }
@@ -170,7 +193,7 @@ __global__ void computeDensityUnsorted(glm::vec4* positions, float* densities, f
     }
 }
 
-__global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3* velocities, float* densities, float* pressures, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, float* h_ptr, float* mass_ptr, float* spikyConst_ptr, float* viscosity_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
+__global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3* velocities, float* densities, float* pressures, float* volumes, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBuffer, uint32_t* cellOffsetBoundary, float* density0_ptr, float* h_ptr, float* mass_ptr, float* spikyConst_ptr, float* viscosity_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
 {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
     int fluidSize = *fluidSize_ptr;
@@ -178,6 +201,7 @@ __global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3
 
     if (i < fluidSize)
     {
+        float density0 = *density0_ptr;
         float h = *h_ptr;
         float mass = *mass_ptr;
         float spikyConst = *spikyConst_ptr;
@@ -189,18 +213,28 @@ __global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3
 
         glm::vec3 pforce = glm::vec3(0.0f);
         glm::vec3 vforce = glm::vec3(0.0f);
+        glm::vec3 vbforce = glm::vec3(0.0f);
         glm::vec3 pos = glm::vec3(ri);
         glm::ivec3 cellIdx = glm::floor(pos / h);
+        float press_dens2 = pi / (di * di);
 
         forall_fluid_neighbors
         (
             glm::vec3 rij = glm::vec3(ri - positions[j]);
 
-            pforce -= (pressures[j] / (densities[j] * densities[j]) + pi / (di * di)) * spikyW(rij, h, spikyConst);
-            vforce += (velocities[j] - vi) / densities[j] * laplW(rij, h, spikyConst);
+            pforce -= mass * (pressures[j] / (densities[j] * densities[j]) + press_dens2) * spikyW(rij, h, spikyConst);
+            vforce += mass * (velocities[j] - vi) / densities[j] * laplW(rij, h, spikyConst);
         );
 
-        forces[i] += (vforce * visco + pforce) * mass;
+        forall_boundary_neighbors
+        (
+            glm::vec3 rib = glm::vec3(ri - positions[b]);
+
+            pforce -= density0 * volumes[b - fluidSize] * (press_dens2 * 2.0f) * spikyW(rib, h, spikyConst); // si no va bien probar con cubicW aunque en ese caso arriba tambien se debería cambiar
+            vbforce += density0 * volumes[b - fluidSize] * (- vi) / di * laplW(rib, h, spikyConst);
+        );
+
+        forces[i] += (vforce * visco + vbforce * visco * 0.1f + pforce);
     }
 }
 
@@ -404,7 +438,7 @@ __global__ void insertBoundaryParticles(glm::vec4* positions, uint32_t* cellInde
         cellIndexBuffer[i] = hashedCell;
 
         // Color por celda
-        //colors[i] = colorById(hashedCell);
+        colors[i] = colorById(hashedCell);
     }
 }
 
@@ -446,6 +480,31 @@ __global__ void computeBoundaryCellOffset(uint32_t* cellIndexBuffer, uint32_t* c
     }
 }
 
+__global__ void computeVolume(glm::vec4* positions, float* volumes, uint32_t* cellIndexBuffer, uint32_t* cellOffsetBoundary, float* h_ptr, float* cubicConst_ptr, int* boundarySize_ptr, int* fluidSize_ptr)
+{
+    int boundarySize = *boundarySize_ptr;
+    int fluidSize = *fluidSize_ptr;
+    int size = boundarySize + fluidSize;
+    int i = blockDim.x * blockIdx.x + threadIdx.x + fluidSize;
+
+    if (i < size)
+    {
+        float cubicConst = *cubicConst_ptr;
+        float h = *h_ptr;
+        glm::vec4 ri = positions[i];
+        glm::ivec3 cellIdx = glm::floor(glm::vec3(ri) / h);
+
+        float delta = 0.0f;
+
+        forall_boundary_neighbors
+        (
+            glm::vec3 rib = glm::vec3(ri - positions[b]);
+            delta += cubicW(rib, h, cubicConst);
+        )
+
+        volumes[i - fluidSize] = 1.0f / delta; // Volume tiene tamaño boundarySize
+    }
+}
 
 void SPHSolver::step(VAO_t vao)
 {
@@ -481,23 +540,23 @@ void SPHSolver::stepSorted(VAO_t vao)
     thrust::device_ptr<uint32_t> cellIndexPtr = thrust::device_pointer_cast(d_cellIndexBuffer);
     thrust::device_ptr<glm::vec4> posPtr = thrust::device_pointer_cast(d_positions);
     thrust::device_ptr<glm::vec3> velPtr = thrust::device_pointer_cast(d_velocities);
-    //thrust::device_ptr<glm::vec4> colPtr = thrust::device_pointer_cast(d_colors); // Solo es necesario ordenar los colores si se pinta por id o cellid
-    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*fluidSize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr)));//, colPtr)));
+    thrust::device_ptr<glm::vec4> colPtr = thrust::device_pointer_cast(d_colors); // Solo es necesario ordenar los colores si se pinta por id o cellid
+    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*fluidSize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr, colPtr)));
 
     // Cell offsets
     computeCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBuffer, d_fluidSize);
 
-    computeDensity<<<gridDim, blockDim>>>(d_positions, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_density0, d_cubicConstK, d_stiffness, d_boundarySize, d_fluidSize);
+    computeDensity<<<gridDim, blockDim>>>(d_positions, d_densities, d_pressures, d_volumes, d_cellIndexBuffer, d_cellOffsetBuffer, d_cellOffsetBoundary, d_h, d_mass, d_density0, d_cubicConstK, d_stiffness, d_boundarySize, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
-    computeForces<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_densities, d_pressures, d_cellIndexBuffer, d_cellOffsetBuffer, d_h, d_mass, d_spikyConst, d_viscosity, d_boundarySize, d_fluidSize);
+    computeForces<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_densities, d_pressures, d_volumes, d_cellIndexBuffer, d_cellOffsetBuffer, d_cellOffsetBoundary, d_density0, d_h, d_mass, d_spikyConst, d_viscosity, d_boundarySize, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
     integration<<<gridDim, blockDim>>>(d_positions, d_forces, d_velocities, d_colors, d_timeStep, d_fluidSize);
     gpuErrchk(cudaGetLastError());
 
-    simpleBoundaryCondition<<<gridDim, blockDim>>>(d_positions, d_velocities, d_minDomain, d_maxDomain, d_fluidSize);
-    gpuErrchk(cudaGetLastError());
+    //simpleBoundaryCondition<<<gridDim, blockDim>>>(d_positions, d_velocities, d_minDomain, d_maxDomain, d_fluidSize);
+    //gpuErrchk(cudaGetLastError());
 
     // Unmap resources
     gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_p_id, 0)); 
@@ -576,10 +635,17 @@ void SPHSolver::init()
     this->cellOffsetBuffer = new uint32_t[2 * size];
     this->cellOffsetBoundary = new uint32_t[2 * size];
 
+    this->volumes = new float[boundarySize];
+
     for (int i = 0; i < fluidSize; ++i)
     {
         particleIndexBuffer[i] = (uint32_t) i;
-    }    
+    }  
+
+    for (int i = 0; i < boundarySize; ++i)
+    {
+        volumes[i] = 0.0f;
+    }  
 
     allocateCudaMemory();
 }
@@ -623,11 +689,13 @@ void SPHSolver::precomputeBoundaryNeighbors(VAO_t vao)
 
     // Reset boundary cell offsets
     resetOffset<<<gridDim, blockDim>>>(d_cellOffsetBoundary, d_size);
+    gpuErrchk(cudaGetLastError());
 
     gridDim = dim3((unsigned) ceil(*boundarySize / (float) BLOCK_SIZE));
     
     // Insert boundary particles 
     insertBoundaryParticles<<<gridDim, blockDim>>>(d_positions, d_cellIndexBuffer, d_colors, d_h, d_boundarySize, d_fluidSize);
+    gpuErrchk(cudaGetLastError());
 
     // Ordenar cellIndexBuffer, positions y velocities (La parte de los arrays correspondiente a las boundary particles [fluidSize, size])
     thrust::device_ptr<uint32_t> cellIndexPtr = thrust::device_pointer_cast(d_cellIndexBuffer + *fluidSize);
@@ -638,6 +706,11 @@ void SPHSolver::precomputeBoundaryNeighbors(VAO_t vao)
 
     // Cell offsets
     computeBoundaryCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBoundary, d_boundarySize, d_fluidSize);
+    gpuErrchk(cudaGetLastError());
+
+    // Compute volume
+    computeVolume<<<gridDim, blockDim>>>(d_positions, d_volumes, d_cellIndexBuffer, d_cellOffsetBoundary, d_h, d_cubicConstK, d_boundarySize, d_fluidSize);
+    gpuErrchk(cudaGetLastError());
 
     gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_p_id, 0)); // Unmap resources
     gpuErrchk(cudaGraphicsUnmapResources(1, &vao.cuda_c_id, 0)); 
@@ -668,6 +741,7 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMalloc(&d_particleIndexBuffer, sizeof(uint32_t) * (*fluidSize)));
     gpuErrchk(cudaMalloc(&d_cellOffsetBuffer, sizeof(uint32_t) * (*size * 2)));
     gpuErrchk(cudaMalloc(&d_cellOffsetBoundary, sizeof(uint32_t) * (*size * 2)));
+    gpuErrchk(cudaMalloc(&d_volumes, sizeof(float) * (*boundarySize)));
 
     // Copiar datos a GPU
     gpuErrchk(cudaMemcpy(d_h, h, sizeof(float), cudaMemcpyHostToDevice));
@@ -692,6 +766,7 @@ void SPHSolver::allocateCudaMemory()
     gpuErrchk(cudaMemcpy(d_particleIndexBuffer, particleIndexBuffer, sizeof(uint32_t) * (*fluidSize), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_cellOffsetBuffer, cellOffsetBuffer, sizeof(uint32_t) * (*size * 2), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(d_cellOffsetBoundary, cellOffsetBoundary, sizeof(uint32_t) * (*size * 2), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_volumes, volumes, sizeof(float) * (*boundarySize), cudaMemcpyHostToDevice));
 
     // Copy constant symbol
     glm::ivec3 displacements[] = { glm::ivec3(-1, -1, -1), glm::ivec3(-1, -1, 0), glm::ivec3(-1, -1, 1), glm::ivec3(-1, 0, -1), glm::ivec3(-1, 0, 0), glm::ivec3(-1, 0, 1), glm::ivec3(-1, 1, -1), glm::ivec3(-1, 1, 0), glm::ivec3(-1, 1, 1), glm::ivec3(0, -1, -1), glm::ivec3(0, -1, 0), glm::ivec3(0, -1, 1), glm::ivec3(0, 0, -1), glm::ivec3(0, 0, 0), glm::ivec3(0, 0, 1), glm::ivec3(0, 1, -1), glm::ivec3(0, 1, 0), glm::ivec3(0, 1, 1), glm::ivec3(1, -1, -1), glm::ivec3(1, -1, 0), glm::ivec3(1, -1, 1), glm::ivec3(1, 0, -1), glm::ivec3(1, 0, 0), glm::ivec3(1, 0, 1), glm::ivec3(1, 1, -1), glm::ivec3(1, 1, 0), glm::ivec3(1, 1, 1)};
@@ -729,4 +804,6 @@ void SPHSolver::release()
     delete[] cellIndexBuffer;
     delete[] cellOffsetBuffer;
 }
+
+
 

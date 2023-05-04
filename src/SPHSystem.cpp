@@ -140,20 +140,11 @@ uint SPHSystem::createBoundary(glm::vec3 min, glm::vec3 max)
     // Longitud del cubo en cada eje
     glm::vec3 l = glm::abs(min - max);
     glm::ivec3 n = glm::ceil(l / (0.5f * supportRadius));
-
-    unsigned numBParts = n.x * n.y * n.z;
-
-    // De momento se redimensiona todo: mirar que propiedades no son utilizadas por las boundary particles
-    positions.resize(this->fluidSize + numBParts);
-    velocities.resize(this->fluidSize + numBParts);
-    forces.resize(this->fluidSize + numBParts);
-    pressures.resize(this->fluidSize + numBParts);
-    densities.resize(this->fluidSize + numBParts);
     
     // Distancia entre particulas de cada eje
     glm::vec3 d = l / glm::vec3(n);
 
-    unsigned id = this->fluidSize;
+    unsigned count = 0;
     for (int i = 0; i <= n.x; i++)
         for (int j = 0; j <= n.y; j++)
             for (int k = 0; k <= n.z; k++)
@@ -164,13 +155,15 @@ uint SPHSystem::createBoundary(glm::vec3 min, glm::vec3 max)
                     glm::vec3 position(i * d.x, j * d.y, k * d.z);
                     position += min;
                     
-                    positions[id] = glm::vec4(position, 1.0f);
-                    velocities[id] = glm::vec3(0.0f);
-                    forces[id] = glm::vec3(0.0f);
-                    ++id;
+                    positions.push_back(glm::vec4(position, 1.0f));
+                    velocities.push_back(glm::vec3(0.0f));
+                    forces.push_back(glm::vec3(0.0f));
+                    pressures.push_back(0.0f);
+                    densities.push_back(0.0f);
+                    ++count;
                 }
 
-    return numBParts;
+    return count;
 }
 
 void SPHSystem::step(double deltaTime)  
