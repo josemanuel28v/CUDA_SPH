@@ -17,17 +17,7 @@ public:
     void swapBuffers();
     bool isClosed();
     GLFWwindow* getWindow() { return window; }
-
-    VAO_t getBufferObject(uint meshId) 
-    { 
-        if (bufferObjects.find(meshId) != bufferObjects.end())
-        {
-            return bufferObjects[meshId]; 
-        }
-        
-        VAO_t vao;
-        return vao;
-    }
+    VAO_t getBufferObject(uint meshId);
 
 private:
 

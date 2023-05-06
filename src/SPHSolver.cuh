@@ -3,21 +3,24 @@
 #include <vector>
 #include "VAO_t.h"
 
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+#define checkCudaErrors(val) check( (val), #val, __FILE__, __LINE__)
+
+template<typename T>
+void check(T err, const char* const func, const char* const file, const int line) 
 {
-   if (code != cudaSuccess) 
-   {
-      fprintf(stderr,"GPU assert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
+    if (err != cudaSuccess) 
+    {
+      std::cerr << "CUDA error at: " << file << ":" << line << std::endl;
+      std::cerr << cudaGetErrorString(err) << " " << func << std::endl;
+      exit(1);
+    }
 }
 
 class SPHSolver
 {
 public:
 
-   // Initialize and set CPU pointers
+   // Initialize and set host pointers
    void init();
    void setSmoothingLength(float* h) { this->h = h; }
    void setParticleRadius(float* radius) { this->radius = radius; }
@@ -36,87 +39,76 @@ public:
    void setViscosity(float* viscosity) { this->viscosity = viscosity; }
    void setTimeStep(float* timeStep) { this->timeStep = timeStep; }
 
-   // GPU Pointers
+   // Device pointers
    void allocateCudaMemory(); 
    void freeCudaMemory();
 
    // SPH computation
    void reset(VAO_t, glm::vec4* h_positions);
    void step(VAO_t vao);
-   void stepSorted(VAO_t vao);
-   void stepUnsorted(VAO_t vao);
    void release();
 
-   // Precomputation of static boundary neighbors
-   void precomputeBoundaryNeighbors(VAO_t vao);
+   // Computation of static boundary neighbors
+   void computeBoundaryNeighbors(VAO_t vao);
 
 private:
 
-   // Host pointers
-   int* size = nullptr;
-   int* fluidSize = nullptr;
-   int* boundarySize = nullptr;
-   float* timeStep = nullptr;
-   float* h = nullptr; 
-   float* mass = nullptr;
-   float* density0 = nullptr;
-   float* stiffness = nullptr;
-   float* viscosity = nullptr;
-   float* spikyConst = nullptr;
-   float* cubicConstK = nullptr;
-   float* radius = nullptr;
-   float* densities = nullptr;
-   float* pressures = nullptr;
-   glm::vec3* forces = nullptr;
-   glm::vec3* velocities = nullptr;
-   glm::vec3* minDomain = nullptr;
-   glm::vec3* maxDomain = nullptr;
+    int numThreadsPerBlock = 256;
 
-   // Grid
-   uint32_t* cellIndexBuffer = nullptr;
-   uint32_t* particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
-   uint32_t* cellOffsetBuffer = nullptr;
-   uint32_t* cellOffsetBoundary = nullptr;
-   float* volumes = nullptr;
+    // Host pointers
+    int* size = nullptr;
+    int* fluidSize = nullptr;
+    int* boundarySize = nullptr;
+    float* timeStep = nullptr;
+    float* h = nullptr; 
+    float* mass = nullptr;
+    float* density0 = nullptr;
+    float* stiffness = nullptr;
+    float* viscosity = nullptr;
+    float* spikyConst = nullptr;
+    float* cubicConstK = nullptr;
+    float* radius = nullptr;
+    float* densities = nullptr;
+    float* pressures = nullptr;
+    glm::vec3* forces = nullptr;
+    glm::vec3* velocities = nullptr;
+    glm::vec3* minDomain = nullptr;
+    glm::vec3* maxDomain = nullptr;
 
-   // Device pointers
-   int* d_size = nullptr;
-   int* d_fluidSize = nullptr;
-   int* d_boundarySize = nullptr;
-   float* d_timeStep = nullptr;
-   float* d_h = nullptr;
-   float* d_mass = nullptr;
-   float* d_density0 = nullptr;
-   float* d_stiffness = nullptr;
-   float* d_viscosity = nullptr;
-   float* d_spikyConst = nullptr;
-   float* d_cubicConstK = nullptr;
-   float* d_radius = nullptr;
-   float* d_densities = nullptr;
-   float* d_pressures = nullptr;
-   glm::vec3* d_forces = nullptr;
-   glm::vec3* d_velocities = nullptr;
-   glm::vec3* d_minDomain = nullptr;
-   glm::vec3* d_maxDomain = nullptr;
+    // Grid
+    uint32_t* cellIndexBuffer = nullptr;
+    uint32_t* cellOffsetBuffer = nullptr;
+    uint32_t* cellOffsetBoundary = nullptr;
+    float* volumes = nullptr;
 
-   // Grid
-   uint32_t* d_cellIndexBuffer = nullptr;
-   uint32_t* d_particleIndexBuffer = nullptr; // Solo para la version sin ordenacion
-   uint32_t* d_cellOffsetBuffer = nullptr;
-   uint32_t* d_cellOffsetBoundary = nullptr;
-   float* d_volumes = nullptr;
+    // Device pointers
+    int* d_size = nullptr;
+    int* d_fluidSize = nullptr;
+    int* d_boundarySize = nullptr;
+    float* d_timeStep = nullptr;
+    float* d_h = nullptr;
+    float* d_mass = nullptr;
+    float* d_density0 = nullptr;
+    float* d_stiffness = nullptr;
+    float* d_viscosity = nullptr;
+    float* d_spikyConst = nullptr;
+    float* d_cubicConstK = nullptr;
+    float* d_radius = nullptr;
+    float* d_densities = nullptr;
+    float* d_pressures = nullptr;
+    glm::vec3* d_forces = nullptr;
+    glm::vec3* d_velocities = nullptr;
+    glm::vec3* d_minDomain = nullptr;
+    glm::vec3* d_maxDomain = nullptr;
+
+    // Grid
+    uint32_t* d_cellIndexBuffer = nullptr;
+    uint32_t* d_cellOffsetBuffer = nullptr;
+    uint32_t* d_cellOffsetBoundary = nullptr;
+    float* d_volumes = nullptr;
 };
 
-struct compare_cells
-{
-   __device__
-   bool operator()(const uint& i, const uint& j) const
-   {
-      return cellIndexBuffer[i] < cellIndexBuffer[j];
-   }
 
-   uint* cellIndexBuffer;
-};
 
 
 

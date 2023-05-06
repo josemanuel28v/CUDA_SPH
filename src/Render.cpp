@@ -92,8 +92,8 @@ void Render::setupObject(Object *obj, unsigned numInstances, glm::vec4* position
         glVertexAttribDivisor(program->vars["pcolor"], 1);
 
         // CUDA register (registrar el buffer de opengl en CUDA para posteriormente mapear posiciones en GPU OpenGL <-> CUDA)
-        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_p_id, vao.p_id, cudaGraphicsMapFlagsNone));
-        gpuErrchk(cudaGraphicsGLRegisterBuffer(&vao.cuda_c_id, vao.c_id, cudaGraphicsMapFlagsNone));
+        checkCudaErrors(cudaGraphicsGLRegisterBuffer(&vao.cuda_p_id, vao.p_id, cudaGraphicsMapFlagsNone));
+        checkCudaErrors(cudaGraphicsGLRegisterBuffer(&vao.cuda_c_id, vao.c_id, cudaGraphicsMapFlagsNone));
 
         glBindVertexArray(0);
 
@@ -146,4 +146,15 @@ void Render::swapBuffers()
 bool Render::isClosed()
 {
     return bool(glfwWindowShouldClose(window));
+}
+
+VAO_t Render::getBufferObject(uint meshId) 
+{ 
+    if (bufferObjects.find(meshId) != bufferObjects.end())
+    {
+        return bufferObjects[meshId]; 
+    }
+    
+    VAO_t vao;
+    return vao;
 }

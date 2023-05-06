@@ -14,14 +14,14 @@ SPHSystem::SPHSystem(Particle* prototype)
 
 void SPHSystem::init()
 {    
-    this->fluidSize = createFluid(fluid);
-    this->boundarySize = createBoundary(minDomain, maxDomain);
-    this->size = this->fluidSize + this->boundarySize;
+    fluidSize = createFluid(fluid);
+    boundarySize = createBoundary(minDomain, maxDomain);
+    size = fluidSize + boundarySize;
 
     h = 4.0f * prototype->getRadius();
     mass = density0 * pow(2.0f * prototype->getRadius(), 3.0f); // m = d * v
 
-    // Set host 
+    // Set host pointers
     solver->setSmoothingLength(&h);
     solver->setParticleRadius(prototype->getRadiusAddress());
     solver->setParticleMass(&mass);
@@ -39,12 +39,8 @@ void SPHSystem::init()
     solver->setViscosity(&viscosity);
     solver->setTimeStep(&timeStep);
 
-    std::cout << "post set host pointers" << std::endl;
-
     // Set device pointers
     solver->init();
-
-    std::cout << "post cudasolver init" << std::endl;
 
     // Print data
     std::cout << "------------------- SPH Fluid ------------------- " << std::endl;
@@ -64,7 +60,7 @@ void SPHSystem::prestep()
     uint mid = prototype->getMesh()->getId();
     VAO_t vao = System::getRender()->getBufferObject(mid);
 
-    solver->precomputeBoundaryNeighbors(vao); 
+    solver->computeBoundaryNeighbors(vao); 
 }
 
 void SPHSystem::reset() 
@@ -75,7 +71,7 @@ void SPHSystem::reset()
     this->fluidSize = createFluid(fluid);
     this->boundarySize = createBoundary(minDomain, maxDomain);
     this->size = this->fluidSize + this->boundarySize;
-    solver->reset(vao, &positions[0]);
+    solver->reset(vao, positions.data());
 }
 
 void SPHSystem::setFluid(std::vector<Fluid> fluid) 
@@ -85,19 +81,19 @@ void SPHSystem::setFluid(std::vector<Fluid> fluid)
 
 void SPHSystem::setBoundary(glm::vec3 min, glm::vec3 max) 
 { 
-    this-> minDomain = min; 
+    this->minDomain = min; 
     this->maxDomain = max; 
 }
 
 uint SPHSystem::createFluid(const std::vector<Fluid>& fluid)
 {
-    float dist = 2.0f * prototype->getRadius();
+    float diam = 2.0f * prototype->getRadius();
     std::vector<glm::ivec3> ppedge(fluid.size());
 
     uint numParticles = 0;
     for (uint fid = 0; fid < fluid.size(); ++fid)
     {
-        ppedge[fid] = floor((fluid[fid].max - fluid[fid].min) / dist);
+        ppedge[fid] = floor(glm::abs(fluid[fid].max - fluid[fid].min) / diam);
         numParticles += ppedge[fid].x * ppedge[fid].y * ppedge[fid].z;
     }
     
@@ -118,7 +114,7 @@ uint SPHSystem::createFluid(const std::vector<Fluid>& fluid)
                 for (int k = 0; k < ppedge[fid].z; ++k)
                 {
                     glm::vec3 pos(i, j, k);
-                    pos *= dist;
+                    pos *= diam;
                     pos += fluid[fid].min + prototype->getRadius();
 
                     positions[id] = glm::vec4(pos, 1.0f);
@@ -135,13 +131,10 @@ uint SPHSystem::createFluid(const std::vector<Fluid>& fluid)
 
 uint SPHSystem::createBoundary(glm::vec3 min, glm::vec3 max)
 {
-    float supportRadius = 4.0f * prototype->getRadius();
+    float diam = 2.0f * prototype->getRadius();
 
-    // Longitud del cubo en cada eje
     glm::vec3 l = glm::abs(min - max);
-    glm::ivec3 n = glm::ceil(l / (0.5f * supportRadius));
-    
-    // Distancia entre particulas de cada eje
+    glm::ivec3 n = glm::ceil(l / diam);    
     glm::vec3 d = l / glm::vec3(n);
 
     unsigned count = 0;
@@ -157,9 +150,6 @@ uint SPHSystem::createBoundary(glm::vec3 min, glm::vec3 max)
                     
                     positions.push_back(glm::vec4(position, 1.0f));
                     velocities.push_back(glm::vec3(0.0f));
-                    forces.push_back(glm::vec3(0.0f));
-                    pressures.push_back(0.0f);
-                    densities.push_back(0.0f);
                     ++count;
                 }
 
