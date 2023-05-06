@@ -8,7 +8,7 @@ El proyecto está basado en CMake, por lo que se recomienda el uso de esta herra
 
 El código se ha probado en dos configuraciones de sistema operativo diferentes:
 
- - Windows 10 de 64 bits, CMake 3.26.2 y MSVC 19.35.32217.1.
+ - Windows 10 de 64 bits, CMake 3.26.2 y MSVC 19.35.32217.1 (Visual Studio 17 2022).
  - Ubuntu 22.04 de 64 bits, CMake 3.22.1 y GCC 11.3.0.
 
 En ambos casos se ha testeado con CUDA 12.1.
