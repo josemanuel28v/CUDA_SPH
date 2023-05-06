@@ -17,7 +17,7 @@ Nota: La arquitectura de la GPU está especificada en el fichero CMakeLists.txt
 
 ## Build instructions
 
-    En la carpeta raíz del proyecto, abrir una terminal de linux o una powershell de Windows:
+    En la carpeta raíz del proyecto, abrir una terminal en Linux o una powershell en Windows:
 
         1. mkdir build
         2. cd build
