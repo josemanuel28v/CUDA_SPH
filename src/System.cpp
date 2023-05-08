@@ -11,6 +11,7 @@ void System::init(uint width, uint height)
 
     exit = false;
     pause = false;
+    drawBoundary = false;
 }
 
 void System::mainLoop()
@@ -33,14 +34,15 @@ void System::mainLoop()
     {
         tm.update();
 
-        inputManager->setWindowTitle(std::to_string(int(round(1.0f / tm.getMeanDeltaTime()))));
+        inputManager->setWindowTitle("FPS: " + std::to_string(int(round(1.0f / tm.getMeanDeltaTime()))));
 
         render->clearDisplay();
 
         camera->step(tm.getDeltaTime());
         if (!pause) psystem->step(tm.getDeltaTime());
 
-        render->drawObject(psystem->getPrototype(), psystem->getDrawSize());
+        uint psysSize = drawBoundary ? psystem->getSize() : psystem->getDrawSize();
+        render->drawObject(psystem->getPrototype(), psysSize);
         render->swapBuffers();
 
         glfwPollEvents();
@@ -52,6 +54,7 @@ void System::mainLoop()
 void System::events()
 {
     static bool pressed = false;
+    static bool boundaryPressed = false;
 
     if (inputManager->isPressed('E') || render->isClosed())
     {
@@ -66,6 +69,16 @@ void System::events()
     else if (!inputManager->isPressed('P'))
     {
         pressed = false;
+    }
+
+    if (inputManager->isPressed('B') && !boundaryPressed)
+    {
+        drawBoundary = !drawBoundary;
+        boundaryPressed = true;
+    }
+    else if (!inputManager->isPressed('B'))
+    {
+        boundaryPressed = false;
     }
 
     if (inputManager->isPressed('R'))

@@ -176,7 +176,7 @@ __global__ void computeForces(glm::vec4* positions, glm::vec3* forces, glm::vec3
             bViscoForce += volumes[b - fluidSize] * laplW(rib, h, spikyConst);
         );
 
-        bPressForce = bPressForce * (press_dens2 * 2.0f);
+        bPressForce = bPressForce * (press_dens2 * 1.0f);
         bViscoForce = bViscoForce * ( (- vi) / di) * visco * 0.1f;
         viscoForce = viscoForce * visco;
         forces[i] += (viscoForce + pressForce) * mass + (bViscoForce + bPressForce) * density0;
@@ -253,18 +253,6 @@ __global__ void simpleBoundaryCondition(glm::vec4* positions, glm::vec3* velocit
 
         positions[i] = glm::vec4(pos, 1.0f);
         velocities[i] = vel;
-    }
-}
-
-__global__ void resetCuda(glm::vec3* velocities, glm::vec3* forces, int* size_ptr)
-{
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-    int size = *size_ptr;
-
-    if (i < size)
-    {
-        velocities[i] = glm::vec3(0.0f);
-        forces[i] = glm::vec3(0.0f);
     }
 }
 
@@ -363,14 +351,13 @@ __global__ void computeVolume(glm::vec4* positions, float* volumes, uint32_t* ce
         glm::ivec3 cellIdx = glm::floor(glm::vec3(ri) / h);
 
         float delta = 0.0f;
-
         forall_boundary_neighbors
         (
             glm::vec3 rib = glm::vec3(ri - positions[b]);
             delta += cubicW(rib, h, cubicConst);
         )
 
-        volumes[i - fluidSize] = 1.0f / delta; 
+        volumes[i - fluidSize] = 1.0f / delta * 2.0f; // x2 con compresible SPH
     }
 }
 
@@ -471,17 +458,15 @@ void SPHSolver::reset(VAO_t vao, glm::vec4* h_positions)
     // Get pointer of mapped data
     checkCudaErrors(cudaGraphicsResourceGetMappedPointer((void**)&d_positions, &bytes, vao.cuda_p_id)); 
 
-    dim3 blockDim(numThreadsPerBlock);
-    dim3 gridDim((unsigned) ceil(*size / (float) numThreadsPerBlock));
-    resetCuda<<<gridDim, blockDim>>>(d_velocities, d_forces, d_size);
-    checkCudaErrors(cudaGetLastError());
+    // Copy positions
+    checkCudaErrors(cudaMemcpy(d_positions, h_positions, sizeof(glm::vec4) * *size, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemset(d_velocities, 0, sizeof(glm::vec3) * *fluidSize));
+    checkCudaErrors(cudaMemset(d_forces, 0, sizeof(glm::vec3) * *fluidSize));
 
     // Unmap resources
     checkCudaErrors(cudaGraphicsUnmapResources(1, &vao.cuda_p_id, 0)); 
 
-    // Copy positions
-    checkCudaErrors(cudaMemcpy(d_positions, h_positions, sizeof(glm::vec4) * *size, cudaMemcpyHostToDevice));
-
+    // Recompute if not static boundaryNeighbor
     computeBoundaryNeighbors(vao);
 }
 
@@ -505,7 +490,7 @@ void SPHSolver::computeBoundaryNeighbors(VAO_t vao)
     checkCudaErrors(cudaGetLastError());
 
     gridDim = dim3((unsigned) ceil(*boundarySize / (float) numThreadsPerBlock));
-    
+
     // Insert boundary particles 
     insertBoundaryParticles<<<gridDim, blockDim>>>(d_positions, d_cellIndexBuffer, d_colors, d_h, d_boundarySize, d_fluidSize);
     checkCudaErrors(cudaGetLastError());
@@ -513,8 +498,8 @@ void SPHSolver::computeBoundaryNeighbors(VAO_t vao)
     // Ordenar cellIndexBuffer, positions y velocities (La parte de los arrays correspondiente a las boundary particles [fluidSize, size])
     thrust::device_ptr<uint32_t> cellIndexPtr = thrust::device_pointer_cast(d_cellIndexBuffer + *fluidSize);
     thrust::device_ptr<glm::vec4> posPtr = thrust::device_pointer_cast(d_positions + *fluidSize);
-    thrust::device_ptr<glm::vec3> velPtr = thrust::device_pointer_cast(d_velocities + *fluidSize);
-    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*boundarySize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, velPtr)));
+    thrust::device_ptr<glm::vec4> colPtr = thrust::device_pointer_cast(d_colors + *fluidSize);
+    thrust::sort_by_key(cellIndexPtr, cellIndexPtr + (*boundarySize), thrust::make_zip_iterator(thrust::make_tuple(posPtr, colPtr)));
 
     // Cell offsets
     computeBoundaryCellOffset<<<gridDim, blockDim>>>(d_cellIndexBuffer, d_cellOffsetBoundary, d_boundarySize, d_fluidSize);
@@ -547,7 +532,7 @@ void SPHSolver::allocateCudaMemory()
     checkCudaErrors(cudaMalloc(&d_densities, sizeof(float) * *fluidSize));
     checkCudaErrors(cudaMalloc(&d_pressures, sizeof(float) * *fluidSize));
     checkCudaErrors(cudaMalloc(&d_forces, sizeof(glm::vec3) * *fluidSize));
-    checkCudaErrors(cudaMalloc(&d_velocities, sizeof(glm::vec3) * *size));
+    checkCudaErrors(cudaMalloc(&d_velocities, sizeof(glm::vec3) * *fluidSize));
     checkCudaErrors(cudaMalloc(&d_minDomain, sizeof(glm::vec3)));
     checkCudaErrors(cudaMalloc(&d_maxDomain, sizeof(glm::vec3)));
     checkCudaErrors(cudaMalloc(&d_cellIndexBuffer, sizeof(uint32_t) * (*size)));
@@ -570,8 +555,8 @@ void SPHSolver::allocateCudaMemory()
     checkCudaErrors(cudaMemcpy(d_boundarySize, boundarySize, sizeof(int), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_densities, densities, sizeof(float) * (*fluidSize), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_pressures, pressures, sizeof(float) * (*fluidSize), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_forces, forces, sizeof(float) * (*fluidSize), cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_velocities, velocities, sizeof(float) * (*fluidSize), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_forces, forces, sizeof(glm::vec3) * (*fluidSize), cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_velocities, velocities, sizeof(glm::vec3) * (*fluidSize), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_minDomain, minDomain, sizeof(glm::vec3), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_maxDomain, maxDomain, sizeof(glm::vec3), cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_cellIndexBuffer, cellIndexBuffer, sizeof(uint32_t) * (*size), cudaMemcpyHostToDevice));

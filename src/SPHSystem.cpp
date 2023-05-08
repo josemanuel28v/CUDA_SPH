@@ -149,7 +149,6 @@ uint SPHSystem::createBoundary(glm::vec3 min, glm::vec3 max)
                     position += min;
                     
                     positions.push_back(glm::vec4(position, 1.0f));
-                    velocities.push_back(glm::vec3(0.0f));
                     ++count;
                 }
 

@@ -84,6 +84,7 @@ public:
 protected:
     inline static bool exit;
 	inline static bool pause;
+	inline static bool drawBoundary;
 
     inline static glm::mat4 model;
     inline static Camera* camera = nullptr;
