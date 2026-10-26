@@ -1,23 +1,23 @@
 ## Overview
 
-Implementación del método SPH para simulación de fluidos. El proyecto está escrito en C++ y CUDA. La visualización de la simulación se lleva a cabo a través de OpenGL, utilizando la interoperabilidad CUDA/OpenGL.
+Implementation of the SPH method for fluid simulation. The project is written in C++ and CUDA. The simulation is visualized using OpenGL, with CUDA/OpenGL interoperability.
 
 ## Build information
 
-El proyecto está basado en CMake, por lo que se recomienda el uso de esta herramienta debido a que facilita el proceso de generación de makefiles para la compilación de código en diversos sistemas operativos y entornos de desarrollo.
+The project is based on CMake, so using this tool is recommended as it simplifies the process of generating makefiles for compiling code across different operating systems and development environments.
 
-El código se ha probado en dos configuraciones de sistema operativo diferentes:
+The code has been tested on two different operating system configurations:
 
- - Windows 10 de 64 bits, CMake 3.26.2 y MSVC 19.35.32217.1 (Visual Studio 17 2022).
- - Ubuntu 22.04 de 64 bits, CMake 3.22.1 y GCC 11.3.0.
+ - Windows 10 64-bit, CMake 3.26.2 and MSVC 19.35.32217.1 (Visual Studio 17 2022).
+ - Ubuntu 22.04 64-bit, CMake 3.22.1 and GCC 11.3.0.
 
-En ambos casos se ha testeado con CUDA 12.1.
+In both cases, it has been tested with CUDA 12.1.
 
-Nota: La arquitectura de la GPU está especificada en el fichero CMakeLists.txt
+Note: The GPU architecture is specified in the CMakeLists.txt file.
 
 ## Build instructions
 
-    En la carpeta raíz del proyecto, abrir una terminal en Linux o una powershell en Windows:
+    From the project root directory, open a terminal on Linux or PowerShell on Windows:
 
         1. mkdir build
         2. cd build
@@ -27,11 +27,11 @@ Nota: La arquitectura de la GPU está especificada en el fichero CMakeLists.txt
         6. ./SPH (Linux)
         6. ./SPH.exe (Windows)
 
-Nota: El paso 6 debe realizarse desde la carpeta Release, ya que las rutas a recursos son relativas a esta carpeta.
+Note: Step 6 must be executed from the Release directory, as resource paths are relative to this directory.
 
 ## Controls
 
-    - Flechas: movimiento de la cámara.
-    - Click derecho + movimiento del ratón: rotación de la cámara
-    - Tecla R: reiniciar la simulación.
-    - Tecla P: pausar la simulación.
+    - Arrow keys: Camera movement.
+    - Right mouse button + mouse movement: Camera rotation
+    - R key: Reset the simulation.
+    - P key: Pause the simulation.
